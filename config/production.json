@@ -1,0 +1,12 @@
+{
+  "domain": "example.com",
+  "canonicalUrl": "https://example.com",
+  "mediaDirectory": "/var/lib/playerpulser/media",
+  "paymentProvider": "simulated",
+  "allowSimulatedPayments": false,
+  "pricingEngineMode": "SIMULATION",
+  "pulsePreview": false,
+  "realSourcePricing": false,
+  "metaPixel": false,
+  "gtm": false
+}

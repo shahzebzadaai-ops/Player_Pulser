@@ -1,0 +1,72 @@
+# Replace example.com with the real domain, then copy this file to
+# /etc/nginx/sites-available/playerpulser and enable that site.
+# Do not expose port 3000. The web process listens on 127.0.0.1 only.
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name www.example.com;
+    return 301 http://example.com$request_uri;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name example.com;
+
+    client_max_body_size 3m;
+
+    # After the certificate exists, change the www redirect and this server to:
+    # listen 443 ssl;
+    # listen [::]:443 ssl;
+    # ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+    # and redirect port 80 to https://example.com.
+    # Login cookies are Secure in production, so use HTTPS before real sign-in.
+
+    location /api/prices/stream {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        add_header Cache-Control "no-store" always;
+        add_header X-Accel-Buffering no;
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+        proxy_cache off;
+        proxy_read_timeout 60s;
+        add_header Cache-Control "no-store" always;
+    }
+
+    location /_next/static/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+        proxy_read_timeout 60s;
+    }
+}

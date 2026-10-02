@@ -1,0 +1,12 @@
+{
+  "matchHeader": {
+    "matchId": 88901,
+    "matchDescription": "1st ODI",
+    "status": "Toss coming up",
+    "state": "Preview",
+    "team1": { "id": 2, "name": "India", "shortName": "IND" },
+    "team2": { "id": 4, "name": "Australia", "shortName": "AUS" }
+  },
+  "miniscore": { "inningsId": 1, "overs": 0 },
+  "commentaryList": []
+}

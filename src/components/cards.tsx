@@ -1,0 +1,77 @@
+import Link from "next/link";
+import type { PlayerView } from "@/server/queries";
+import { PulseStar } from "./pulse-star";
+import { LiveDot, Portrait, PriceText, Sparkline, roleLabel } from "./visuals";
+
+export function LiveCard({ player, className = "w-[178px] shrink-0" }: { player: PlayerView; className?: string }) {
+  const up = Number(player.changePaise) >= 0;
+  return (
+    <article className={`${className} rounded-2xl border border-line bg-card p-3`}>
+      <div className="flex items-start justify-between gap-2">
+        <Portrait name={player.name} seed={player.slug} className="h-20 w-16" />
+        <LiveDot live={player.live} />
+      </div>
+      <h3 className="mt-2 truncate text-sm font-semibold">{player.name}</h3>
+      {player.pulse ? (
+        <p className="mt-1 flex items-center gap-1 text-[11px] text-muted">
+          <PulseStar playerId={player.id} state={player.pulse.state} />
+          <span className="sr-only">Market Pulse</span>
+          <span className="truncate">{player.pulse.activity}</span>
+          <span className="rounded-full bg-pitch px-1.5 py-0.5 text-[10px] font-semibold text-india">Simulation</span>
+        </p>
+      ) : null}
+      <p className="num text-lg font-bold">
+        <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
+      </p>
+      <p className="text-xs">
+        <PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />
+      </p>
+      <Sparkline values={player.history} positive={up} />
+      <div className="mt-2 grid grid-cols-2 gap-1.5">
+        <Link href={`/players/${player.slug}?side=buy#trade`} className="press flex min-h-11 items-center justify-center rounded-lg bg-gain text-xs font-bold text-pitch">
+          BUY
+        </Link>
+        <Link href={`/players/${player.slug}?side=sell#trade`} className="press flex min-h-11 items-center justify-center rounded-lg bg-loss text-xs font-bold text-white">
+          SELL
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+export function MoverCard({ player }: { player: PlayerView }) {
+  const up = Number(player.changePaise) >= 0;
+  return (
+    <Link href={`/players/${player.slug}`} className="w-[148px] shrink-0 rounded-2xl border border-line bg-card p-3">
+      <Portrait name={player.name} alt={player.name} seed={player.slug} className="h-16 w-14" />
+      <p className="mt-2 truncate text-sm font-semibold">{player.shortName}</p>
+      <p className="num text-sm font-semibold">
+        <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
+      </p>
+      <p className={`text-xs ${up ? "text-gain" : "text-loss"}`}>
+        <PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />
+      </p>
+    </Link>
+  );
+}
+
+export function SectionHead({ title, href }: { title: string; href: string }) {
+  return (
+    <div className="mb-3 flex items-center justify-between">
+      <h2 className="text-lg font-semibold">{title}</h2>
+      <Link href={href} className="text-sm text-india">
+        See all
+      </Link>
+    </div>
+  );
+}
+
+export function Notice() {
+  return (
+    <p className="rounded-xl bg-card px-3 py-2 text-xs text-muted">
+      Development prices for recognisable Indian players. This is not a verified current squad and not a live exchange.
+    </p>
+  );
+}
+
+export { roleLabel };

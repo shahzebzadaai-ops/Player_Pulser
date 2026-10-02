@@ -1,0 +1,58 @@
+[
+  {
+    "b": "1",
+    "ball_db_id": "52509-139",
+    "bf": "KWP",
+    "pf": "75H",
+    "c1": "Leo Sadler to Jerome Bossr",
+    "c2": "",
+    "id": 1790859942926,
+    "inning": 1,
+    "mfkey": "14IL",
+    "o": "1.6",
+    "type": "b",
+    "s": "9/0"
+  },
+  {
+    "b": "1",
+    "ball_db_id": "52509-138",
+    "bf": "KWP",
+    "pf": "8IP",
+    "c1": "Leo Sadler to Nathan Roux",
+    "c2": "",
+    "id": 1790859901840,
+    "inning": 1,
+    "mfkey": "14IL",
+    "o": "1.5",
+    "type": "b",
+    "s": "8/0"
+  },
+  {
+    "b": "1",
+    "ball_db_id": "52509-137",
+    "bf": "KWP",
+    "pf": "75H",
+    "c1": "Leo Sadler to Jerome Bossr",
+    "c2": "",
+    "id": 1790859874301,
+    "inning": 1,
+    "mfkey": "14IL",
+    "o": "1.4",
+    "type": "b",
+    "s": "7/0"
+  },
+  {
+    "b": "1",
+    "ball_db_id": "52509-136",
+    "bf": "KWP",
+    "pf": "8IP",
+    "c1": "Leo Sadler to Nathan Roux",
+    "c2": "",
+    "id": 1790859821703,
+    "inning": 1,
+    "mfkey": "14IL",
+    "o": "1.3",
+    "type": "b",
+    "s": "6/0"
+  }
+]

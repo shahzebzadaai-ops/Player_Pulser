@@ -1,0 +1,76 @@
+{
+  "typeMatches": [
+    {
+      "matchType": "International",
+      "seriesMatches": [
+        {
+          "seriesAdWrapper": {
+            "seriesId": 8801,
+            "seriesName": "India tour of Australia, 2026",
+            "matches": [
+              {
+                "matchInfo": {
+                  "matchId": 88901,
+                  "seriesName": "India tour of Australia, 2026",
+                  "matchDesc": "1st ODI",
+                  "matchFormat": "ODI",
+                  "startDate": "1759017600000",
+                  "state": "In Progress",
+                  "status": "India need 42 runs",
+                  "team1": { "teamId": 2, "teamName": "India", "teamSName": "IND" },
+                  "team2": { "teamId": 4, "teamName": "Australia", "teamSName": "AUS" },
+                  "venueInfo": { "ground": "Melbourne Cricket Ground", "city": "Melbourne" }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "seriesAdWrapper": {
+            "seriesId": 8802,
+            "seriesName": "England tour of South Africa, 2026",
+            "matches": [
+              {
+                "matchInfo": {
+                  "matchId": 88950,
+                  "seriesName": "England tour of South Africa, 2026",
+                  "matchDesc": "1st Test",
+                  "matchFormat": "TEST",
+                  "startDate": "1759104000000",
+                  "state": "Upcoming",
+                  "status": "Match starts at 14:00",
+                  "team1": { "teamId": 9, "teamName": "England", "teamSName": "ENG" },
+                  "team2": { "teamId": 11, "teamName": "South Africa", "teamSName": "SA" },
+                  "venueInfo": { "ground": "Newlands", "city": "Cape Town" }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "matchType": "League",
+      "seriesMatches": [
+        {
+          "seriesAdWrapper": {
+            "seriesName": "County Championship",
+            "matches": [
+              {
+                "matchInfo": {
+                  "matchId": 100,
+                  "matchDesc": "Domestic",
+                  "matchFormat": "TEST",
+                  "startDate": "1759017600000",
+                  "state": "Upcoming",
+                  "team1": { "teamName": "Surrey", "teamSName": "SUR" },
+                  "team2": { "teamName": "Essex", "teamSName": "ESS" }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

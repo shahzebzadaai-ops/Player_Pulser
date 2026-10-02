@@ -1,0 +1,1192 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum PlayerRole {
+  BATTER
+  BOWLER
+  ALL_ROUNDER
+  WICKET_KEEPER
+}
+
+enum LedgerAccount {
+  USER_CASH
+  USER_BONUS
+  USER_BONUS_PROCEEDS
+  USER_WITHDRAWAL_HOLD
+  OFFSET_CASH
+  OFFSET_BONUS
+  OFFSET_TRADING
+  OFFSET_FORFEIT
+}
+
+enum TradeSide {
+  BUY
+  SELL
+}
+
+enum BonusStatus {
+  ACTIVE
+  CONVERTED
+  EXPIRED
+  PENDING_REVIEW
+  NOT_ELIGIBLE
+}
+
+enum BonusDisposition {
+  NONE
+  OPEN
+  CONVERTED
+  EXPIRED_UNCONVERTED
+}
+
+enum PaymentKind {
+  DEPOSIT
+  PAYOUT
+}
+
+enum PaymentStatus {
+  PENDING
+  SETTLED
+  FAILED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  phone        String?   @unique
+  email        String?   @unique
+  displayName  String
+  passwordHash String?
+  role         UserRole  @default(CUSTOMER)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+  sessions     Session[]
+  ledger       LedgerEntry[]
+  trades       Trade[]
+  lots         HoldingLot[]
+  bonuses      BonusGrant[]
+  payments     Payment[]
+  quotes       Quote[]
+  auditLogs    AuditLog[] @relation("AuditActor")
+  staffAccount StaffAccount?
+  notes        CustomerNote[] @relation("NoteSubject")
+  authoredNotes CustomerNote[] @relation("NoteAuthor")
+  segmentMemberships SegmentMember[]
+  referralCodes ReferralCode[]
+  visitors     Visitor[]
+  attribution  UserAttribution?
+  watches      PlayerWatch[]
+  policyAcceptances PolicyAcceptance[]
+  abuseFlags   AbuseFlag[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model OtpChallenge {
+  id         String    @id @default(cuid())
+  phone      String
+  codeHash   String
+  expiresAt  DateTime  @db.Timestamptz(3)
+  consumedAt DateTime? @db.Timestamptz(3)
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([phone, createdAt])
+}
+
+model Player {
+  id                String      @id @default(cuid())
+  slug              String      @unique
+  name              String
+  shortName         String
+  role              PlayerRole
+  country           String      @default("INDIA")
+  jerseyNumber      Int?
+  tradable          Boolean     @default(true)
+  liveMatch         Boolean     @default(false)
+  referenceMidPaise BigInt
+  basePricePaise    BigInt
+  midPricePaise     BigInt
+  matchAnchorPaise  BigInt
+  performanceMatchBps Int     @default(0)
+  fictional         Boolean     @default(true)
+  blurb             String
+  totalTradedPaise  BigInt      @default(0)
+  createdAt         DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime    @updatedAt @db.Timestamptz(3)
+  ticks             PriceTick[]
+  trades            Trade[]
+  lots              HoldingLot[]
+  events            MatchEvent[]
+  newsEvents        PlayerNewsEvent[]
+  quotes            Quote[]
+  riskControl       PlayerRiskControl?
+  riskHistory       RiskStateChange[]
+  pulsePreviews     PulsePreviewCycle[]
+  watches           PlayerWatch[]
+}
+
+model PulsePreviewCycle {
+  id                String   @id @default(cuid())
+  playerId          String
+  cycleId           String
+  configVersion     String
+  priorPreviewPaise BigInt
+  nextPreviewPaise  BigInt
+  state             String
+  intensityMilli    Int
+  movementBeforeBps Int
+  movementAfterBps  Int
+  feedPicture       String
+  seedRef           String
+  fairAnchorPaise   BigInt?
+  randomPulseBps    Int?
+  anchorDriftBps    Int?
+  feedScaleMilli    Int?
+  finalMovementBps  Int?
+  deviationCapBps   Int?
+  inputs            Json
+  createdAt         DateTime @default(now()) @db.Timestamptz(3)
+  player            Player   @relation(fields: [playerId], references: [id])
+
+  @@unique([playerId, cycleId, configVersion])
+  @@index([playerId, createdAt])
+}
+
+model PlayerWatch {
+  id        String   @id @default(cuid())
+  userId    String
+  playerId  String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id])
+  player    Player   @relation(fields: [playerId], references: [id])
+
+  @@unique([userId, playerId])
+}
+
+model PlayerRiskControl {
+  playerId   String   @id
+  manualMode String   @default("AUTO")
+  lastState  String   @default("NORMAL")
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+  player     Player   @relation(fields: [playerId], references: [id])
+}
+
+model RiskStateChange {
+  id              String   @id @default(cuid())
+  playerId        String
+  oldState        String
+  newState        String
+  reason          String
+  metricsSnapshot Json
+  actorId         String?
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  player          Player   @relation(fields: [playerId], references: [id])
+
+  @@index([playerId, createdAt])
+}
+
+model PriceTick {
+  id               String   @id @default(cuid())
+  playerId         String
+  midPaise         BigInt
+  previousMidPaise BigInt?
+  source           String
+  performance      Float    @default(0)
+  demand           Float    @default(0)
+  news             Float    @default(0)
+  performanceBps   Float?
+  demandBps        Float?
+  newsBps          Float?
+  contextMultiplier Float?
+  eventType        String?
+  eventId          String?
+  wasClamped       Boolean?
+  clampReason      String?
+  reason           String?
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  player           Player   @relation(fields: [playerId], references: [id])
+
+  @@index([playerId, createdAt])
+  @@index([createdAt])
+}
+
+model MatchEvent {
+  id                  String   @id @default(cuid())
+  playerId            String
+  overLabel           String
+  kind                String
+  summary             String
+  simulated           Boolean  @default(true)
+  context             String   @default("NORMAL")
+  contextMultiplier   Float?
+  idempotencyKey      String?  @unique
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+  player              Player   @relation(fields: [playerId], references: [id])
+
+  @@index([playerId, createdAt])
+}
+
+model PlayerNewsEvent {
+  id             String    @id @default(cuid())
+  playerId       String
+  category       String
+  direction      String
+  severity       Int
+  confidence     Int       @default(100)
+  source         String
+  headline       String
+  occurredAt     DateTime  @db.Timestamptz(3)
+  verifiedAt     DateTime? @db.Timestamptz(3)
+  createdBy      String?
+  sourceAgent    String?
+  idempotencyKey String    @unique
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  player         Player    @relation(fields: [playerId], references: [id])
+
+  @@index([playerId, createdAt])
+}
+
+model PriceApplication {
+  id        String   @id @default(cuid())
+  eventKey  String   @unique
+  playerId  String
+  tickId    String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([playerId, createdAt])
+}
+
+model Quote {
+  id         String    @id @default(cuid())
+  userId     String
+  playerId   String
+  side       TradeSide
+  quantity   Int
+  midPaise   BigInt
+  unitPaise  BigInt
+  spreadPpm  Int
+  cashPaise  BigInt
+  bonusPaise BigInt
+  expiresAt  DateTime  @db.Timestamptz(3)
+  consumedAt DateTime? @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  user       User      @relation(fields: [userId], references: [id])
+  player     Player    @relation(fields: [playerId], references: [id])
+  trade      Trade?
+
+  @@index([userId, createdAt])
+}
+
+model Trade {
+  id                 String    @id @default(cuid())
+  userId             String
+  playerId           String
+  quoteId            String    @unique
+  side               TradeSide
+  quantity           Int
+  unitPaise          BigInt
+  cashPaise          BigInt
+  bonusPaise         BigInt
+  idempotencyKey     String    @unique
+  countsForWagering  Boolean   @default(true)
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  user               User      @relation(fields: [userId], references: [id])
+  player             Player    @relation(fields: [playerId], references: [id])
+  quote              Quote     @relation(fields: [quoteId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([playerId, createdAt])
+}
+
+model HoldingLot {
+  id                String            @id @default(cuid())
+  userId            String
+  playerId          String
+  sourceTradeId     String            @unique
+  quantityOriginal  Int
+  quantityRemaining Int
+  cashCostPaise     BigInt
+  bonusCostPaise    BigInt
+  bonusGrantId      String?
+  bonusDisposition  BonusDisposition  @default(NONE)
+  createdAt         DateTime          @default(now()) @db.Timestamptz(3)
+  user              User              @relation(fields: [userId], references: [id])
+  player            Player            @relation(fields: [playerId], references: [id])
+  bonusGrant        BonusGrant?       @relation(fields: [bonusGrantId], references: [id])
+
+  @@index([userId, playerId])
+}
+
+model LedgerEntry {
+  id             String        @id @default(cuid())
+  userId         String?
+  account        LedgerAccount
+  amountPaise    BigInt
+  correlationId  String
+  entryType      String
+  lineKey        String
+  description    String
+  referenceType  String?
+  referenceId    String?
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+  user           User?         @relation(fields: [userId], references: [id])
+
+  @@unique([lineKey])
+  @@index([userId, account])
+  @@index([correlationId])
+}
+
+model IdempotencyRecord {
+  key         String   @id
+  userId      String
+  scope       String
+  requestHash String
+  response    Json
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+}
+
+model BonusGrant {
+  id                    String      @id @default(cuid())
+  userId                String
+  source                String
+  amountPaise           BigInt
+  wageringRequiredPaise BigInt
+  wageringProgressPaise BigInt      @default(0)
+  depositRequiredPaise  BigInt
+  status                BonusStatus @default(ACTIVE)
+  eligibility           String      @default("GRANTED")
+  eligibilityReason     String?
+  expiresAt             DateTime    @db.Timestamptz(3)
+  convertedAt           DateTime?   @db.Timestamptz(3)
+  expiredAt             DateTime?   @db.Timestamptz(3)
+  createdAt             DateTime    @default(now()) @db.Timestamptz(3)
+  user                  User        @relation(fields: [userId], references: [id])
+  lots                  HoldingLot[]
+
+  @@unique([userId, source])
+  @@index([status, expiresAt])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  userId         String
+  provider       String
+  providerRef    String?
+  kind           PaymentKind
+  status         PaymentStatus
+  amountPaise    BigInt
+  idempotencyKey String        @unique
+  failureReason  String?
+  providerCustomerId String?
+  payerReference String?
+  paymentInstrumentFingerprint String?
+  attemptCount   Int           @default(0)
+  nextRetryAt    DateTime?     @db.Timestamptz(3)
+  metadata       Json?
+  settledAt      DateTime?     @db.Timestamptz(3)
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime      @updatedAt @db.Timestamptz(3)
+  user           User          @relation(fields: [userId], references: [id])
+  events         PaymentEvent[]
+
+  @@index([userId, createdAt])
+  @@index([status, nextRetryAt])
+  @@index([provider, providerRef])
+}
+
+model PaymentEvent {
+  id        String   @id @default(cuid())
+  paymentId String?
+  provider  String
+  eventId   String
+  payload   Json
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  payment   Payment? @relation(fields: [paymentId], references: [id])
+
+  @@unique([provider, eventId])
+}
+
+model PolicyAcceptance {
+  id             String   @id @default(cuid())
+  userId         String
+  policyType     String?
+  version        String?
+  termsVersion   String
+  privacyVersion String
+  acceptedAt     DateTime @default(now()) @db.Timestamptz(3)
+  ip             String?
+  userAgent      String?
+  user           User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, acceptedAt])
+  @@index([userId, policyType, acceptedAt])
+}
+
+model AbuseFlag {
+  id        String   @id @default(cuid())
+  userId    String
+  code      String
+  detail    String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model PaymentGateway {
+  id                    String   @id @default(cuid())
+  category              String
+  name                  String
+  providerKey           String
+  enabled               Boolean  @default(false)
+  environment           String   @default("sandbox")
+  priority              Int      @default(100)
+  supportedMethods      Json
+  asset                 String?
+  network               String?
+  depositEnabled        Boolean  @default(false)
+  withdrawalEnabled     Boolean  @default(false)
+  minimumDepositPaise   BigInt?
+  maximumDepositPaise   BigInt?
+  minimumWithdrawalPaise BigInt?
+  maximumWithdrawalPaise BigInt?
+  confirmationsRequired Int?
+  configRef             String?
+  health                String   @default("UNKNOWN")
+  lastSuccessAt         DateTime? @db.Timestamptz(3)
+  lastWebhookAt         DateTime? @db.Timestamptz(3)
+  errorCount            Int      @default(0)
+  successCount          Int      @default(0)
+  lastError             String?
+  notes                 String?
+  createdAt             DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([category, providerKey])
+}
+
+model RateLimitBucket {
+  id          String   @id @default(cuid())
+  action      String
+  subject     String
+  windowStart DateTime @db.Timestamptz(3)
+  hits        Int      @default(0)
+  expiresAt   DateTime @db.Timestamptz(3)
+
+  @@unique([action, subject, windowStart])
+  @@index([expiresAt])
+}
+
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  updatedBy String?
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  before     Json?
+  after      Json?
+  reason     String?
+  ip         String?
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+}
+
+enum StaffRole {
+  SUPER_ADMIN
+  OPERATIONS_MANAGER
+  FINANCE
+  CRM_MANAGER
+  CONTENT_MANAGER
+  SUPPORT
+  ANALYST
+  VIP_MANAGER
+}
+
+enum BannerPlacement {
+  HOME_MAIN
+  MARKET
+  REWARDS
+  WALLET
+  LANDING_HERO
+}
+
+enum BannerStatus {
+  DRAFT
+  SCHEDULED
+  LIVE
+  EXPIRED
+  DISABLED
+  ARCHIVED
+}
+
+enum MediaFolder {
+  PLAYERS
+  BANNERS
+  BONUSES
+  LOYALTY
+  BRAND
+  MISC
+}
+
+enum TaskType {
+  VIP_CALL
+  WITHDRAWAL_REVIEW
+  CUSTOMER_SUPPORT
+  CONTENT_UPDATE
+  CRM_FOLLOWUP
+}
+
+enum TaskPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum AnnouncementStatus {
+  DRAFT
+  LIVE
+  DISABLED
+}
+
+enum CampaignChannel {
+  WHATSAPP
+  PUSH
+  IN_APP
+}
+
+enum CampaignStatus {
+  DRAFT
+  DISABLED
+}
+
+model StaffAccount {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  staffRole StaffRole @default(SUPPORT)
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Banner {
+  id             String          @id @default(cuid())
+  name           String
+  placement      BannerPlacement
+  headline       String
+  subtitle       String          @default("")
+  imageId        String?
+  mobileImageId  String?
+  ctaLabel       String          @default("")
+  ctaDestination String          @default("")
+  altText        String          @default("")
+  status         BannerStatus    @default(DRAFT)
+  startAt        DateTime?       @db.Timestamptz(3)
+  endAt          DateTime?       @db.Timestamptz(3)
+  sortOrder      Int             @default(0)
+  publishedAt    DateTime?       @db.Timestamptz(3)
+  createdById    String?
+  updatedById    String?
+  createdAt      DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime        @updatedAt @db.Timestamptz(3)
+  image          MediaAsset?     @relation("BannerImage", fields: [imageId], references: [id])
+  mobileImage    MediaAsset?     @relation("BannerMobile", fields: [mobileImageId], references: [id])
+  revisions      BannerRevision[]
+
+  @@index([placement, status, sortOrder])
+}
+
+model BannerRevision {
+  id        String   @id @default(cuid())
+  bannerId  String
+  actorId   String?
+  snapshot  Json
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  banner    Banner   @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+
+  @@index([bannerId, createdAt])
+}
+
+model MediaAsset {
+  id           String       @id @default(cuid())
+  folder       MediaFolder
+  filename     String
+  mimeType     String
+  bytes        Int
+  width        Int?
+  height       Int?
+  altText      String       @default("")
+  storageKey   String       @unique
+  archivedAt   DateTime?    @db.Timestamptz(3)
+  createdById  String?
+  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
+  bannerImages Banner[]     @relation("BannerImage")
+  bannerMobiles Banner[]    @relation("BannerMobile")
+
+  @@index([folder, createdAt])
+}
+
+model StaffTask {
+  id           String       @id @default(cuid())
+  title        String
+  type         TaskType
+  customerId   String?
+  assignedToId String?
+  createdById  String?
+  priority     TaskPriority @default(NORMAL)
+  dueAt        DateTime?    @db.Timestamptz(3)
+  status       TaskStatus   @default(OPEN)
+  notes        String       @default("")
+  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
+  completedAt  DateTime?    @db.Timestamptz(3)
+
+  @@index([status, dueAt])
+  @@index([type, status])
+  @@index([assignedToId])
+}
+
+model Announcement {
+  id          String             @id @default(cuid())
+  title       String
+  body        String
+  status      AnnouncementStatus @default(DRAFT)
+  createdById String?
+  updatedById String?
+  createdAt   DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime           @updatedAt @db.Timestamptz(3)
+}
+
+model Campaign {
+  id          String          @id @default(cuid())
+  name        String
+  channel     CampaignChannel
+  status      CampaignStatus  @default(DRAFT)
+  body        String          @default("")
+  createdById String?
+  updatedById String?
+  createdAt   DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @db.Timestamptz(3)
+}
+
+model Segment {
+  id          String          @id @default(cuid())
+  name        String
+  description String          @default("")
+  createdById String?
+  createdAt   DateTime        @default(now()) @db.Timestamptz(3)
+  members     SegmentMember[]
+}
+
+model SegmentMember {
+  segmentId String
+  userId    String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  segment   Segment  @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([segmentId, userId])
+}
+
+model CustomerNote {
+  id        String   @id @default(cuid())
+  userId    String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  user      User     @relation("NoteSubject", fields: [userId], references: [id], onDelete: Cascade)
+  author    User     @relation("NoteAuthor", fields: [authorId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model ReferralCode {
+  id          String   @id @default(cuid())
+  userId      String
+  code        String   @unique
+  active      Boolean  @default(true)
+  createdById String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Visitor {
+  id           String            @id
+  userId       String?
+  internal     Boolean           @default(false)
+  firstSeenAt  DateTime          @default(now()) @db.Timestamptz(3)
+  lastSeenAt   DateTime          @default(now()) @db.Timestamptz(3)
+  firstTouchId String?
+  lastTouchId  String?
+  user         User?             @relation(fields: [userId], references: [id])
+  sessions     VisitSession[]
+  touches      TrafficTouch[]
+  events       AnalyticsEvent[]
+
+  @@index([userId])
+}
+
+model VisitSession {
+  id          String           @id
+  visitorId   String
+  startedAt   DateTime         @default(now()) @db.Timestamptz(3)
+  lastSeenAt  DateTime         @default(now()) @db.Timestamptz(3)
+  landingPage String
+  referrer    String?
+  visitor     Visitor          @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  touches     TrafficTouch[]
+  events      AnalyticsEvent[]
+
+  @@index([visitorId, startedAt])
+}
+
+model TrafficTouch {
+  id          String       @id @default(cuid())
+  visitorId   String
+  sessionId   String       @unique
+  source      String?
+  medium      String?
+  campaign    String?
+  content     String?
+  term        String?
+  fbclid      String?
+  gclid       String?
+  msclkid     String?
+  landingPage String
+  referrer    String?
+  attributed  Boolean      @default(false)
+  touchedAt   DateTime     @default(now()) @db.Timestamptz(3)
+  visitor     Visitor      @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  session     VisitSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([visitorId, touchedAt])
+  @@index([source, campaign])
+}
+
+model UserAttribution {
+  userId              String    @id
+  signupTouchId       String?
+  firstDepositTouchId String?
+  signupAt            DateTime? @db.Timestamptz(3)
+  firstDepositAt      DateTime? @db.Timestamptz(3)
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AnalyticsEvent {
+  id         String        @id @default(cuid())
+  visitorId  String?
+  sessionId  String?
+  userId     String?
+  touchId    String?
+  eventName  String
+  dedupeKey  String        @unique
+  metadata   Json?
+  occurredAt DateTime      @default(now()) @db.Timestamptz(3)
+  visitor    Visitor?      @relation(fields: [visitorId], references: [id])
+  session    VisitSession? @relation(fields: [sessionId], references: [id])
+
+  @@index([eventName, occurredAt])
+  @@index([userId, eventName])
+  @@index([touchId])
+}
+
+enum CampaignLinkStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+model CampaignLink {
+  id           String             @id @default(cuid())
+  name         String
+  destination  String
+  utmSource    String
+  utmMedium    String
+  utmCampaign  String
+  utmContent   String?
+  utmTerm      String?
+  adSet        String?
+  adName       String?
+  creativeName String?
+  notes        String             @default("")
+  status       CampaignLinkStatus @default(ACTIVE)
+  createdById  String?
+  createdAt    DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime           @updatedAt @db.Timestamptz(3)
+
+  @@index([status, createdAt])
+}
+
+model CricketMatch {
+  id           String   @id @default(cuid())
+  competition  String
+  homeTeam     String
+  awayTeam     String
+  venue        String   @default("")
+  scheduledAt  DateTime @db.Timestamptz(3)
+  status       String   @default("SCHEDULED")
+  innings      Int?
+  overLabel    String?
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+  externalIds  CricketMatchExternalId[]
+  events       CricketEvent[]
+  consensusEvents ConsensusEvent[]
+
+  @@index([status, scheduledAt])
+}
+
+model CricketMatchExternalId {
+  id         String       @id @default(cuid())
+  matchId    String
+  source     String
+  externalId String
+  match      CricketMatch @relation(fields: [matchId], references: [id])
+
+  @@unique([source, externalId])
+  @@index([matchId])
+}
+
+model PlayerFeedMapping {
+  id                 String    @id @default(cuid())
+  matchId            String?
+  internalPlayerId   String?
+  source             String
+  externalPlayerId   String
+  externalPlayerName String
+  mappingStatus       String    @default("UNMAPPED")
+  participationStatus String    @default("SQUAD")
+  lastVerifiedAt      DateTime? @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@unique([source, externalPlayerId])
+  @@index([mappingStatus])
+  @@index([matchId])
+}
+
+model CricketEvent {
+  id                    String       @id @default(cuid())
+  matchId               String
+  innings               Int
+  over                  Int
+  ball                  Int
+  sequence              Int
+  occurredAt            DateTime     @db.Timestamptz(3)
+  eventType             String
+  battingPlayerId       String?
+  bowlingPlayerId       String?
+  fielderPlayerIds      String[]
+  runsBatter            Int          @default(0)
+  runsExtras            Int          @default(0)
+  runsTotal             Int          @default(0)
+  wicketType            String?
+  isBoundary            Boolean      @default(false)
+  isSix                 Boolean      @default(false)
+  isFour                Boolean      @default(false)
+  rawDescription        String?
+  normalizedDescription String
+  source                String
+  sourceEventId         String?
+  sourceTimestamp       DateTime?    @db.Timestamptz(3)
+  receivedAt            DateTime?    @db.Timestamptz(3)
+  confidence            Int          @default(100)
+  ingestionKey          String       @unique
+  pricingKeys           String[]
+  correctionState       String       @default("ACTIVE")
+  correctsEventId       String?
+  supersededById        String?
+  acknowledgedAt        DateTime?    @db.Timestamptz(3)
+  acknowledgedBy        String?
+  createdAt             DateTime     @default(now()) @db.Timestamptz(3)
+  match                 CricketMatch @relation(fields: [matchId], references: [id])
+
+  @@index([matchId, createdAt])
+  @@index([battingPlayerId, createdAt])
+}
+
+model ConsensusEvent {
+  id                  String       @id @default(cuid())
+  matchId             String
+  innings             Int
+  overNumber          Int
+  ballNumber          Int
+  acceptedEvent       Json?
+  confidence          String
+  supportingSources   String[]
+  conflictingSources  String[]
+  sourceEventIds      String[]
+  createdAt           DateTime     @default(now()) @db.Timestamptz(3)
+  match               CricketMatch @relation(fields: [matchId], references: [id])
+
+  @@index([matchId, createdAt])
+}
+
+model FeedSourceState {
+  source              String    @id
+  enabled             Boolean   @default(false)
+  priority            Int
+  lastSuccessfulPoll  DateTime? @db.Timestamptz(3)
+  lastEventAt         DateTime? @db.Timestamptz(3)
+  consecutiveFailures Int       @default(0)
+  successCount        Int       @default(0)
+  failureCount        Int       @default(0)
+  latencyTotalMs      Int       @default(0)
+  latencySamples      Int       @default(0)
+  lastPollLatencyMs   Int       @default(0)
+  status              String    @default("DISABLED")
+  operatingMode       String    @default("DISABLED")
+  lastPollOutcome     String?
+  lastAttemptAt       DateTime? @db.Timestamptz(3)
+  reliabilityScore    Int       @default(70)
+  agreementPercent    Int       @default(100)
+  gapPercent          Int       @default(0)
+  correctionPercent   Int       @default(0)
+  updatedAt           DateTime  @updatedAt @db.Timestamptz(3)
+}
+
+model FeedControl {
+  id                  String    @id @default("default")
+  activeSource        String?
+  pollIntervalSeconds Int       @default(15)
+  gapSafetyPolicy     String    @default("PAUSE_NEW_BUYS_FOR_AFFECTED_PLAYERS")
+  lastPolledAt        DateTime? @db.Timestamptz(3)
+  updatedAt           DateTime  @updatedAt @db.Timestamptz(3)
+}
+
+model FeedActivation {
+  id                    String   @id @default(cuid())
+  source                String
+  matchId               String
+  activatedAt           DateTime @db.Timestamptz(3)
+  activationEventCursor String?
+  activationInnings     Int?
+  activationOver        Int?
+  activationBall        Int?
+  activationSequence    Int?
+  baselinePending       Boolean  @default(false)
+  activatedBy           String?
+  activationReason      String
+  createdAt             DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([source, matchId])
+  @@index([matchId])
+}
+
+model FeedHighWater {
+  id                      String    @id @default(cuid())
+  source                  String
+  matchId                 String
+  latestProviderEventId   String?
+  latestInnings           Int?
+  latestOver              Int?
+  latestBall              Int?
+  latestProviderTimestamp DateTime? @db.Timestamptz(3)
+  latestSequence          Int?
+  lastIngestAt            DateTime? @db.Timestamptz(3)
+  continuity              String    @default("CONTINUOUS")
+  startedMidMatch         Boolean   @default(false)
+  contextInnings          Int?
+  contextOver             Int?
+  contextBall             Int?
+  observedSince           DateTime? @db.Timestamptz(3)
+  duplicateCount          Int       @default(0)
+  possibleGapCount        Int       @default(0)
+  recoveredGapCount       Int       @default(0)
+  unresolvedGapCount      Int       @default(0)
+  parseFailureCount       Int       @default(0)
+  recoveryAttemptCount    Int       @default(0)
+  createdAt               DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@unique([source, matchId])
+  @@index([matchId])
+}
+
+model MatchScoreSnapshot {
+  id                   String    @id @default(cuid())
+  matchId              String
+  source               String
+  innings              Int
+  scoreRuns            Int
+  wickets              Int
+  overs                String
+  strikerExternalId    String?
+  nonStrikerExternalId String?
+  bowlerExternalId     String?
+  status               String
+  providerTimestamp    DateTime? @db.Timestamptz(3)
+  reconciliation       String    @default("UNKNOWN")
+  ingestedAt           DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([matchId, source, ingestedAt])
+}
+
+model FeedIncident {
+  id         String    @id @default(cuid())
+  matchId    String?
+  source     String
+  type       String
+  severity   String
+  openedAt   DateTime  @default(now()) @db.Timestamptz(3)
+  resolvedAt DateTime? @db.Timestamptz(3)
+  resolution String?
+  actorId    String?
+
+  @@index([resolvedAt, openedAt])
+  @@index([matchId, type])
+}
+
+model FeedFailover {
+  id        String   @id @default(cuid())
+  oldSource String?
+  newSource String?
+  reason    String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+}
+
+model DiscoveredCricketMatch {
+  id                 String    @id @default(cuid())
+  source             String
+  externalId         String
+  competition        String
+  homeTeam           String
+  awayTeam           String
+  venue              String    @default("")
+  scheduledAt        DateTime  @db.Timestamptz(3)
+  providerStatus     String    @default("")
+  matchFormat        String    @default("")
+  indiaInternational Boolean   @default(false)
+  importedMatchId    String?
+  discoveredAt       DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@unique([source, externalId])
+  @@index([indiaInternational, scheduledAt])
+}
+
+model FeedGapRecord {
+  id                      String   @id @default(cuid())
+  matchId                 String
+  source                  String
+  previousInnings         Int
+  previousOver            Int
+  previousBall            Int
+  previousProviderEventId String?
+  previousSequence        Int?
+  nextInnings             Int
+  nextOver                Int
+  nextBall                Int
+  nextProviderEventId     String?
+  nextSequence            Int?
+  slotSpan                Int
+  recoveryResult          String
+  createdAt               DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([matchId, source, createdAt])
+}
+
+model FeedUnclassifiedEvent {
+  id              String    @id @default(cuid())
+  matchId         String
+  source          String
+  innings         Int
+  over            Int
+  ball            Int
+  sequence        Int
+  providerCode    String
+  rawDescription  String
+  sourceEventId   String
+  sourceTimestamp DateTime? @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@unique([source, sourceEventId])
+  @@index([matchId, source])
+}
+
+model FeedReconciliationNote {
+  id              String   @id @default(cuid())
+  matchId         String
+  source          String
+  state           String
+  expectedRuns    Int?
+  expectedWickets Int?
+  providerRuns    Int
+  providerWickets Int
+  providerOvers   String
+  lastKnownEvent  String?
+  observedAt      DateTime @db.Timestamptz(3)
+
+  @@index([matchId, source, observedAt])
+}
+
+model ShadowMatchSignoff {
+  id                String    @id @default(cuid())
+  matchId           String
+  source            String
+  validatedBy       String?
+  validatedAt       DateTime? @db.Timestamptz(3)
+  validationReason  String?
+  summaryFrozenAt   DateTime? @db.Timestamptz(3)
+  summary           Json?
+  createdAt         DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@unique([matchId, source])
+  @@index([matchId])
+}
+
+model FeedSnapshot {
+  id              String   @id @default(cuid())
+  source          String
+  externalMatchId String?
+  kind            String
+  outcome         String
+  body            String
+  bytes           Int
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([source, createdAt])
+}

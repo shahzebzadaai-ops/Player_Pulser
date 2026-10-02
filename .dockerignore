@@ -1,0 +1,8 @@
+node_modules
+.next
+.data
+.git
+backups
+.env
+*.md
+!README.md

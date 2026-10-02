@@ -1,0 +1,42 @@
+[
+  {
+    "runs": "0",
+    "comment_type": "comment",
+    "timestamp": "1790837000000",
+    "comment_text": "8.5 Washington Sundar to Tharindu Ratnayake, good length and around off.",
+    "opta_ball_type": "normal",
+    "cardSlug": "india-vs-sri-lanka-2nd-semi-final-01-october-2026",
+    "_id": "fixture-dot"
+  },
+  {
+    "runs": "4",
+    "comment_type": "comment",
+    "timestamp": "1790837100000",
+    "comment_text": "8.6 Washington Sundar to Tharindu Ratnayake, OH! THAT WILL BE FOUR OFF A MISFIELD!",
+    "opta_ball_type": "normal",
+    "cardSlug": "india-vs-sri-lanka-2nd-semi-final-01-october-2026",
+    "_id": "fixture-four"
+  },
+  {
+    "runs": "5",
+    "comment_type": "comment",
+    "timestamp": "1790837706000",
+    "comment_text": "End of over 9 (5 runs), Sri Lanka 43/7",
+    "opta_ball_type": "end of over",
+    "over": "9.0",
+    "score": "43/7",
+    "inning_number": "2",
+    "bowler": "Washington Sundar",
+    "cardSlug": "india-vs-sri-lanka-2nd-semi-final-01-october-2026",
+    "_id": "fixture-over"
+  },
+  {
+    "runs": "0",
+    "comment_type": "comment",
+    "timestamp": "1790838129000",
+    "comment_text": "9.5 Abhishek Sharma to Binura Fernando, IT'S ALL OVER! INDIA ARE IN THE ASIAN GAMES FINAL! Arm-ball around off-and-middle on the good length. Binura played around that one from the crease, and got cleaned up!",
+    "opta_ball_type": "wicket",
+    "cardSlug": "india-vs-sri-lanka-2nd-semi-final-01-october-2026",
+    "_id": "fixture-wicket"
+  }
+]

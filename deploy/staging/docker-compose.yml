@@ -1,0 +1,36 @@
+# Staging only. Bind the app to localhost so it does not take ports 80 or 443
+# from anything already on the VPS. Put a reverse proxy in front after the
+# domain is confirmed.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: playerpulser
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: playerpulser
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+  redis:
+    image: redis:7
+    restart: unless-stopped
+  app:
+    build: ../..
+    env_file: .env
+    ports:
+      - "127.0.0.1:3010:3000"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+  worker:
+    build: ../..
+    command: npm run worker
+    env_file: .env
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+volumes:
+  pgdata:
