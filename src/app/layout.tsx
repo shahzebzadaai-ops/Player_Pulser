@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import { Suspense } from "react";
 import { AttributionBeacon } from "@/components/attribution-beacon";
 import { PwaRegister } from "@/components/chrome";
+import { PriceStreamProvider } from "@/components/price-stream";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -32,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Suspense fallback={null}>
           <AttributionBeacon />
         </Suspense>
-        {children}
+        <PriceStreamProvider>{children}</PriceStreamProvider>
       </body>
     </html>
   );

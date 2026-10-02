@@ -3,28 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { formatPaise, formatPercent, formatSignedPaise } from "@/domain/money";
-import { sseRetryDelayMs } from "@/domain/realtime";
-
-type PricePayload = {
-  stale: boolean;
-  players: {
-    id: string;
-    midPaise: string;
-    buyPaise: string;
-    sellPaise: string;
-    changePaise: string;
-    changePercent: number;
-    live?: boolean;
-    lastEvent?: string | null;
-    whyLine?: string | null;
-    pulseState?: "CALM" | "STEADY" | "ACTIVE" | "SURGE" | null;
-    pulseActivity?: string | null;
-    pulseFeedLabel?: string | null;
-    pulsePreviewPaise?: string | null;
-    pulseCycleId?: string | null;
-  }[];
-};
+import { StreamStatus } from "./price-stream";
 
 export function LogoutButton() {
   const router = useRouter();
@@ -47,98 +26,14 @@ export function LogoutButton() {
 export function AppFrame({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto min-h-dvh w-full max-w-[430px] pb-28">
+      <div className="flex justify-end px-4 pt-3">
+        <StreamStatus />
+      </div>
       <ConnectionState />
-      <LivePriceBinder />
       {children}
       <BottomNav />
     </div>
   );
-}
-
-export function LivePriceBinder() {
-  useEffect(() => {
-    let source: EventSource | null = null;
-    let poll = 0;
-    const apply = (payload: PricePayload) => {
-      for (const element of document.querySelectorAll<HTMLElement>("[data-price-for]")) {
-        const player = payload.players.find((item) => item.id === element.dataset.priceFor);
-        const field = element.dataset.field;
-        if (!player || !field) continue;
-        const up = BigInt(player.changePaise) >= 0n;
-        const next =
-          field === "change"
-            ? `${formatSignedPaise(player.changePaise)} (${formatPercent(player.changePercent)})`
-            : formatPaise(field === "buy" ? player.buyPaise : field === "sell" ? player.sellPaise : player.midPaise);
-        if (element.textContent && element.textContent !== next) {
-          element.classList.remove("flash-up", "flash-down", "price-flash");
-          void element.offsetWidth;
-          element.classList.add(up ? "flash-up" : "flash-down");
-          if (up) element.classList.add("price-flash");
-        }
-        element.textContent = next;
-        if (field === "change") {
-          element.classList.toggle("text-gain", up);
-          element.classList.toggle("text-loss", !up);
-        }
-      }
-      for (const element of document.querySelectorAll<HTMLElement>("[data-live-event]")) {
-        const player = payload.players.find((item) => item.id === element.dataset.liveEvent);
-        if (player?.lastEvent) element.textContent = player.lastEvent;
-      }
-      for (const element of document.querySelectorAll<HTMLElement>("[data-live-why]")) {
-        const player = payload.players.find((item) => item.id === element.dataset.liveWhy);
-        if (player?.whyLine) element.textContent = player.whyLine;
-      }
-      for (const element of document.querySelectorAll<HTMLElement>("[data-live-dot]")) {
-        const player = payload.players.find((item) => item.id === element.dataset.liveDot);
-        const label = element.querySelector("[data-live-dot-label]");
-        if (!player || !label || player.live === undefined) continue;
-        label.textContent = player.live ? "LIVE" : "QUOTED";
-      }
-      window.dispatchEvent(new CustomEvent("pp-prices", { detail: payload }));
-    };
-    let stopped = false;
-    let attempt = 0;
-    let retryTimer = 0;
-    const startPoll = () => {
-      if (poll) return;
-      poll = window.setInterval(async () => {
-        try {
-          const response = await fetch("/api/feed", { cache: "no-store" });
-          if (response.ok) apply((await response.json()) as PricePayload);
-        } catch {
-          /* the next SSE snapshot replaces this */
-        }
-      }, 4000);
-    };
-    const connect = () => {
-      source = new EventSource("/api/prices/stream");
-      source.onopen = () => {
-        attempt = 0;
-        if (poll) {
-          window.clearInterval(poll);
-          poll = 0;
-        }
-      };
-      source.onmessage = (event) => apply(JSON.parse(event.data) as PricePayload);
-      source.onerror = () => {
-        source?.close();
-        source = null;
-        if (stopped) return;
-        startPoll();
-        retryTimer = window.setTimeout(connect, sseRetryDelayMs(attempt));
-        attempt += 1;
-      };
-    };
-    connect();
-    return () => {
-      stopped = true;
-      source?.close();
-      if (poll) window.clearInterval(poll);
-      if (retryTimer) window.clearTimeout(retryTimer);
-    };
-  }, []);
-  return null;
 }
 
 export function ConnectionState() {
@@ -146,7 +41,7 @@ export function ConnectionState() {
   const [stale, setStale] = useState(false);
   useEffect(() => {
     const sync = () => setOffline(!navigator.onLine);
-    const onPrices = (event: Event) => setStale(Boolean((event as CustomEvent<PricePayload>).detail?.stale));
+    const onPrices = (event: Event) => setStale(Boolean((event as CustomEvent<{ stale?: boolean }>).detail?.stale));
     sync();
     window.addEventListener("online", sync);
     window.addEventListener("offline", sync);

@@ -26,7 +26,7 @@ export function LiveCard({ player, className = "w-[178px] shrink-0" }: { player:
       <p className="text-xs">
         <PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />
       </p>
-      <Sparkline values={player.history} positive={up} />
+      <Sparkline playerId={player.id} values={player.history} positive={up} />
       <div className="mt-2 grid grid-cols-2 gap-1.5">
         <Link href={`/players/${player.slug}?side=buy#trade`} className="press flex min-h-11 items-center justify-center rounded-lg bg-gain text-xs font-bold text-pitch">
           BUY

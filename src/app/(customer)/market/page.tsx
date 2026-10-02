@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BannerSlot } from "@/components/banner-slot";
 import { LiveCard, MoverCard, Notice, SectionHead } from "@/components/cards";
+import { MarketPulse } from "@/components/price-display";
 import { roleLabel } from "@/components/visuals";
 import { listPlayers } from "@/server/queries";
 
@@ -30,6 +31,7 @@ export default async function MarketPage({
   return (
     <main className="px-4 pt-4">
       <h1 className="text-2xl font-bold">Market</h1>
+      <MarketPulse />
       <BannerSlot placement="MARKET" />
       <form className="mt-3 space-y-3" action="/market">
         <label className="block text-sm">

@@ -18,6 +18,7 @@ export type AppSettings = {
   bonusMinQualifyingDepositPaise: bigint;
   bonusMinCashPortionBps: number;
   pricingSimulationCapBps: number;
+  simulationCycleMs: number;
   pricingMode: PricingMode;
   engineMode: EngineMode;
   performanceMatchCapBps: number;
@@ -55,6 +56,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   bonusMinQualifyingDepositPaise: 50_000n,
   bonusMinCashPortionBps: 5_000,
   pricingSimulationCapBps: 200,
+  simulationCycleMs: 4_000,
   pricingMode: "simulation",
   engineMode: "SIMULATION",
   performanceMatchCapBps: 1200,
@@ -76,6 +78,15 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   realSourcePricingEnabled: false,
   realSourcePricingEnabledAt: null,
 };
+
+export const SIMULATION_CYCLE_MIN_MS = 3_000;
+export const SIMULATION_CYCLE_MAX_MS = 5_000;
+
+export function simulationCycleMs(value: unknown): number {
+  const parsed = typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : Number.NaN;
+  if (!Number.isFinite(parsed)) return DEFAULT_APP_SETTINGS.simulationCycleMs;
+  return Math.min(SIMULATION_CYCLE_MAX_MS, Math.max(SIMULATION_CYCLE_MIN_MS, Math.round(parsed)));
+}
 
 export function journalBalances(entries: { amountPaise: bigint }[]): boolean {
   return entries.reduce((sum, entry) => sum + entry.amountPaise, 0n) === 0n;

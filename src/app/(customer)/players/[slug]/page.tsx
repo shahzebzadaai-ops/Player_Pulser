@@ -6,8 +6,9 @@ import { PulsePanel } from "@/components/pulse-star";
 import { TradeSheet } from "@/components/trade-sheet";
 import { TradeTicket } from "@/components/trade-ticket";
 import { WatchButton } from "@/components/watch-button";
+import { LiveSpread } from "@/components/price-display";
 import { LiveDot, Logo, Portrait, PriceText, roleLabel } from "@/components/visuals";
-import { formatPaise, formatPercent, formatSignedPaise } from "@/domain/money";
+import { formatPaise } from "@/domain/money";
 import { getCurrentUser } from "@/server/current-user";
 import { getFeatures } from "@/server/features";
 import { prisma } from "@/server/prisma";
@@ -38,7 +39,6 @@ export default async function PlayerPage({
   ]);
   const holding = book.positions.find((position) => position.playerId === player.id);
   const up = Number(player.changePaise) >= 0;
-  const spreadPaise = BigInt(player.buyPaise) - BigInt(player.sellPaise);
 
   return (
     <main className="px-4 pt-4">
@@ -75,7 +75,7 @@ export default async function PlayerPage({
       <dl className="mt-3 grid grid-cols-4 gap-2 text-center text-[11px]">
         <Stat label="Window high" value={formatPaise(player.highPaise)} />
         <Stat label="Window low" value={formatPaise(player.lowPaise)} />
-        <Stat label="24h change" value={formatPercent(player.changePercent)} />
+        <Stat label="24h change" value={<PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />} />
         <Stat label="Total traded" value={player.totalTradedLabel} />
       </dl>
       <div className="mt-4">
@@ -94,16 +94,16 @@ export default async function PlayerPage({
       ) : null}
       <HowPricesWork />
       <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
-        <Stat label="Buy price" value={formatPaise(player.buyPaise)} />
-        <Stat label="Sell price" value={formatPaise(player.sellPaise)} />
-        <Stat label="Current spread" value={formatPaise(spreadPaise)} />
+        <Stat label="Buy price" value={<PriceText playerId={player.id} field="buy" paise={player.buyPaise} />} />
+        <Stat label="Sell price" value={<PriceText playerId={player.id} field="sell" paise={player.sellPaise} />} />
+        <Stat label="Current spread" value={<LiveSpread playerId={player.id} buyPaise={player.buyPaise} sellPaise={player.sellPaise} />} />
         <Stat label="Your cash" value={formatPaise(wallet.cashPaise)} />
         <Stat label="Your bonus" value={formatPaise(wallet.bonusPaise)} />
         <Stat label="You hold" value={`${holding?.quantity ?? 0} Pulsers`} />
       </dl>
       <div className="mt-4">
         {features.liveTradingEnabled ? (
-        <TradeSheet buyPaise={player.buyPaise} sellPaise={player.sellPaise}>
+        <TradeSheet playerId={player.id} buyPaise={player.buyPaise} sellPaise={player.sellPaise}>
         <TradeTicket
           playerId={player.id}
           initialBuy={player.buyPaise}
@@ -144,13 +144,13 @@ export default async function PlayerPage({
         </ul>
       </section>
       <p className="mt-3 text-xs text-muted">
-        Buy {formatPaise(player.buyPaise)} · Sell {formatPaise(player.sellPaise)}. Spread is included in those quotes. {formatSignedPaise(player.changePaise)} is the move across the recent window.
+        Buy <PriceText playerId={player.id} field="buy" paise={player.buyPaise} /> · Sell <PriceText playerId={player.id} field="sell" paise={player.sellPaise} />. Spread is included in those quotes. <PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} /> is the move across the recent window.
       </p>
     </main>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="rounded-2xl bg-card p-2">
       <dt className="text-muted">{label}</dt>

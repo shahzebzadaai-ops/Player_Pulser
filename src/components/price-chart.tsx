@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { nextChartPoint } from "@/domain/live-prices";
 
 const RANGES = ["1H", "24H", "7D", "30D", "ALL"] as const;
 type Range = (typeof RANGES)[number];
@@ -8,6 +9,8 @@ type Point = { time: number; value: number };
 
 export function PriceChart({ playerId, initial }: { playerId: string; initial: Point[] }) {
   const host = useRef<HTMLDivElement>(null);
+  const seriesRef = useRef<{ update: (bar: Point) => void } | null>(null);
+  const lastTimeRef = useRef<number | null>(initial.at(-1)?.time ?? null);
   const [range, setRange] = useState<Range>("24H");
   const [points, setPoints] = useState<Point[]>(initial);
   const [note, setNote] = useState<string | null>(null);
@@ -18,12 +21,15 @@ export function PriceChart({ playerId, initial }: { playerId: string; initial: P
     const onPrices = (event: Event) => {
       const payload = (event as CustomEvent<{ players?: { id: string; chartTime?: number | null; chartValue?: number | null }[] }>).detail;
       const player = payload?.players?.find((item) => item.id === playerId);
-      if (!player?.chartTime || player.chartValue == null) return;
-      setPoints((current) => {
-        const last = current[current.length - 1];
-        if (last && last.time >= player.chartTime!) return current;
-        return [...current, { time: player.chartTime!, value: player.chartValue! }];
-      });
+      if (player?.chartTime == null || player.chartValue == null || !seriesRef.current) return;
+      const point = nextChartPoint(lastTimeRef.current, { time: player.chartTime, value: player.chartValue });
+      if (!point) return;
+      try {
+        seriesRef.current.update(point);
+        lastTimeRef.current = point.time;
+      } catch {
+        /* an older bar cannot extend the series */
+      }
     };
     window.addEventListener("pp-prices", onPrices);
     return () => window.removeEventListener("pp-prices", onPrices);
@@ -34,6 +40,7 @@ export function PriceChart({ playerId, initial }: { playerId: string; initial: P
     if (!node || points.length === 0) return;
     let chart: { remove: () => void } | null = null;
     let cancelled = false;
+    lastTimeRef.current = points[points.length - 1]?.time ?? null;
     void import("lightweight-charts").then(({ createChart, AreaSeries, ColorType }) => {
       if (cancelled || !host.current) return;
       const instance = createChart(host.current, {
@@ -52,11 +59,13 @@ export function PriceChart({ playerId, initial }: { playerId: string; initial: P
         priceLineColor: "#3d8bff",
       });
       series.setData(points.map((point) => ({ time: point.time as never, value: point.value })));
+      seriesRef.current = { update: (bar) => series.update(bar as never) };
       instance.timeScale().fitContent();
       chart = instance;
     });
     return () => {
       cancelled = true;
+      seriesRef.current = null;
       chart?.remove();
     };
   }, [points]);

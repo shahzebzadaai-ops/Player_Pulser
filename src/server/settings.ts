@@ -1,5 +1,5 @@
 import { resolveEngineMode } from "@/domain/pricing-engine";
-import { DEFAULT_APP_SETTINGS, type AppSettings, type PricingMode } from "@/domain/settings";
+import { DEFAULT_APP_SETTINGS, simulationCycleMs, type AppSettings, type PricingMode } from "@/domain/settings";
 import { requireReason, writeAudit } from "./audit";
 import { prisma, type Tx } from "./prisma";
 
@@ -70,6 +70,7 @@ async function readSettings(db: Tx): Promise<AppSettings> {
       values.get("pricing.simulationCapBps"),
       DEFAULT_APP_SETTINGS.pricingSimulationCapBps,
     ),
+    simulationCycleMs: simulationCycleMs(values.get("pricing.simulationCycleMs") ?? DEFAULT_APP_SETTINGS.simulationCycleMs),
     pricingMode,
     engineMode: resolveEngineMode(values.get("pricing.engineMode"), process.env.PRICING_ENGINE_MODE),
     performanceMatchCapBps: numberSetting(values.get("pricing.performanceMatchCapBps"), DEFAULT_APP_SETTINGS.performanceMatchCapBps),
@@ -126,6 +127,7 @@ export const SETTING_DEFAULT_ROWS: { key: string; value: string | number }[] = [
   { key: "bonus.minQualifyingDepositPaise", value: DEFAULT_APP_SETTINGS.bonusMinQualifyingDepositPaise.toString() },
   { key: "bonus.minCashPortionBps", value: DEFAULT_APP_SETTINGS.bonusMinCashPortionBps },
   { key: "pricing.simulationCapBps", value: DEFAULT_APP_SETTINGS.pricingSimulationCapBps },
+  { key: "pricing.simulationCycleMs", value: DEFAULT_APP_SETTINGS.simulationCycleMs },
   { key: "pricing.mode", value: DEFAULT_APP_SETTINGS.pricingMode },
   { key: "pricing.engineMode", value: DEFAULT_APP_SETTINGS.engineMode },
   { key: "pricing.performanceMatchCapBps", value: DEFAULT_APP_SETTINGS.performanceMatchCapBps },

@@ -89,11 +89,38 @@ select {
   animation: flash-down 0.7s ease;
 }
 
-.ticker-track {
+.tick-up {
+  animation: flash-up 550ms ease;
+}
+
+.tick-down {
+  animation: flash-down 550ms ease;
+}
+
+.marquee-window {
+  scrollbar-width: none;
+}
+
+.marquee-window::-webkit-scrollbar {
+  display: none;
+  height: 0;
+}
+
+.market-marquee,
+.player-marquee {
   display: flex;
   width: max-content;
-  gap: 1.5rem;
-  animation: ticker 36s linear infinite;
+  animation: ticker 25s linear infinite;
+}
+
+.player-marquee {
+  animation-duration: 36s;
+}
+
+@media (min-width: 768px) {
+  .market-marquee {
+    animation-duration: 29s;
+  }
 }
 
 .skel {
@@ -151,11 +178,18 @@ select {
   .flash-up,
   .price-flash,
   .flash-down,
-  .ticker-track,
+  .tick-up,
+  .tick-down,
+  .market-marquee,
+  .player-marquee,
   .skel,
   .press:active,
   .pulse-star {
     animation: none;
     transform: none;
+  }
+
+  .marquee-window {
+    overflow-x: auto;
   }
 }

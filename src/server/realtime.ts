@@ -12,6 +12,7 @@ import {
 import { markOps } from "./ops-status";
 import { prisma } from "./prisma";
 import { publicPricePayload } from "./queries";
+import { externalMarketSnapshot } from "./external-markets";
 
 const LISTENER_AT = "ops.realtimeListenerAt";
 const SSE_LAST_PUSH = "ops.sseLastPushAt";
@@ -20,7 +21,15 @@ type NoticeHandler = (notice: RealtimeNotice) => void;
 type SseClient = { enqueue: (chunk: Uint8Array) => void };
 
 const handlers = new Set<NoticeHandler>();
-const clients = new Set<SseClient>();
+type RealtimeGlobals = typeof globalThis & {
+  ppSseClients?: Set<SseClient>;
+  ppLastBroadcastAt?: string | null;
+  ppLastLatencyMs?: number | null;
+  ppListenerConnected?: boolean;
+};
+const realtimeGlobals = globalThis as RealtimeGlobals;
+const clients = realtimeGlobals.ppSseClients ?? new Set<SseClient>();
+realtimeGlobals.ppSseClients = clients;
 const encoder = new TextEncoder();
 
 type ListenerSlot = { owner: object; stop: () => Promise<void> };
@@ -138,6 +147,15 @@ export function addSseClient(enqueue: (chunk: Uint8Array) => void): () => void {
   return () => clients.delete(sse);
 }
 
+export function realtimeDiagnostics(): { listenerConnected: boolean; sseClients: number; lastBroadcastAt: string | null; lastLatencyMs: number | null } {
+  return {
+    listenerConnected: Boolean(realtimeGlobals.ppListenerConnected),
+    sseClients: clients.size,
+    lastBroadcastAt: realtimeGlobals.ppLastBroadcastAt ?? null,
+    lastLatencyMs: realtimeGlobals.ppLastLatencyMs ?? null,
+  };
+}
+
 async function noteSsePush(): Promise<void> {
   const now = Date.now();
   if (now - lastSseMark < 5_000) return;
@@ -165,7 +183,13 @@ function scheduleAuthoritativePush(): void {
 
 export async function pushAuthoritativePrices(): Promise<void> {
   if (clients.size === 0) return;
-  const payload = await publicPricePayload();
+  const payload = { ...(await publicPricePayload()), markets: externalMarketSnapshot() };
+  const newest = payload.players.reduce((latest, player) => {
+    const at = player.createdAt ? Date.parse(player.createdAt) : Number.NaN;
+    return Number.isFinite(at) ? Math.max(latest, at) : latest;
+  }, 0);
+  realtimeGlobals.ppLastBroadcastAt = new Date().toISOString();
+  realtimeGlobals.ppLastLatencyMs = newest > 0 ? Date.now() - newest : null;
   const frame = encoder.encode(`data: ${JSON.stringify(payload)}\n\n`);
   for (const sse of clients) {
     try {
@@ -187,6 +211,7 @@ async function fail(fromGeneration: number): Promise<void> {
   generation += 1;
   const current = client;
   client = null;
+  realtimeGlobals.ppListenerConnected = false;
   if (heartbeat) clearInterval(heartbeat);
   heartbeat = null;
   try {
@@ -235,6 +260,7 @@ async function connectListener(): Promise<void> {
   await next.query(`LISTEN ${REALTIME_CHANNELS.priceUpdate}`);
   await next.query(`LISTEN ${REALTIME_CHANNELS.marketStatus}`);
   client = next;
+  realtimeGlobals.ppListenerConnected = true;
   await markOps(LISTENER_AT);
   if (heartbeat) clearInterval(heartbeat);
   heartbeat = setInterval(() => {
@@ -271,5 +297,6 @@ export async function stopRealtimeListener(): Promise<void> {
   heartbeat = null;
   const current = client;
   client = null;
+  realtimeGlobals.ppListenerConnected = false;
   if (current) await current.end().catch(() => undefined);
 }

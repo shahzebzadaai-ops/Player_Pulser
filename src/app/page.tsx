@@ -4,9 +4,12 @@ import { redirect } from "next/navigation";
 import { BannerSlot } from "@/components/banner-slot";
 import { SignupPrompt } from "@/components/signup-prompt";
 import { LiveCard, MoverCard } from "@/components/cards";
+import { MarketPulse } from "@/components/price-display";
+import { PlayerTicker } from "@/components/player-ticker";
+import { StreamStatus } from "@/components/price-stream";
 import { Logo, Portrait, PriceText, Sparkline } from "@/components/visuals";
 import { getCurrentUser } from "@/server/current-user";
-import { formatPaise, formatPercent, formatSignedPaise } from "@/domain/money";
+import { formatPaise } from "@/domain/money";
 import { listPlayers, type PlayerView } from "@/server/queries";
 import { getSeo } from "@/server/seo";
 
@@ -24,11 +27,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LandingPage() {
   const user = await getCurrentUser();
   if (user) redirect("/home");
+  let players: PlayerView[] = [];
   let featured: PlayerView | null = null;
   let movers: PlayerView[] = [];
   let strip: PlayerView[] = [];
   try {
     const market = await listPlayers();
+    players = market.players;
     featured = market.players.find((player) => player.slug === "virat-kohli") ?? market.players[0] ?? null;
     movers = [...market.players].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent)).slice(0, 4);
     strip = market.players.filter((player) => player.slug !== featured?.slug).slice(0, 4);
@@ -40,7 +45,8 @@ export default async function LandingPage() {
     <main className="mx-auto min-h-dvh w-full max-w-[430px] px-4 pb-10 pt-5">
       <header className="flex items-center justify-between">
         <Logo />
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <StreamStatus />
           <Link href="/signup" className="min-h-11 rounded-xl bg-india px-3 py-2 text-sm font-semibold">
             Sign up
           </Link>
@@ -49,6 +55,8 @@ export default async function LandingPage() {
           </Link>
         </div>
       </header>
+      <MarketPulse />
+      <PlayerTicker players={players} />
       <BannerSlot placement="LANDING_HERO" />
       <section className="relative mt-6 overflow-hidden rounded-3xl bg-gradient-to-br from-[#12386f] to-[#07111f] p-5">
         <p className="max-w-[14rem] text-4xl font-bold leading-tight">
@@ -80,10 +88,10 @@ export default async function LandingPage() {
               <p className="num text-3xl font-bold">
                 <PriceText playerId={featured.id} field="mid" paise={featured.midPaise} />
               </p>
-              <p className="text-sm text-gain">
-                {formatSignedPaise(featured.changePaise)} ({formatPercent(featured.changePercent)})
+              <p className="text-sm">
+                <PriceText playerId={featured.id} field="change" changePaise={featured.changePaise} changePercent={featured.changePercent} />
               </p>
-              <Sparkline values={featured.history} positive={Number(featured.changePaise) >= 0} />
+              <Sparkline playerId={featured.id} values={featured.history} positive={Number(featured.changePaise) >= 0} />
             </div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">

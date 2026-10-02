@@ -89,5 +89,5 @@ export function sseHealth(input: { listener: TransportHealth; lastPushAgeMs: num
 
 export function sseRetryDelayMs(attempt: number): number {
   const step = Math.max(0, Math.floor(attempt));
-  return Math.min(10_000, 1000 * 2 ** step);
+  return Math.min(15_000, 1000 * 2 ** step);
 }

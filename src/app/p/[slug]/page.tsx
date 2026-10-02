@@ -3,8 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { HowPricesWork } from "@/components/how-prices-work";
 import { PulsePanel } from "@/components/pulse-star";
-import { Portrait } from "@/components/visuals";
-import { formatPaise } from "@/domain/money";
+import { Portrait, PriceText } from "@/components/visuals";
 import { playerPublicSeo } from "@/domain/seo";
 import { getPlayer } from "@/server/queries";
 import { getSeo } from "@/server/seo";
@@ -71,7 +70,7 @@ export default async function PublicPlayerPage({ params }: { params: Promise<{ s
         <div>
           <h1 className="text-2xl font-bold">{player.name}</h1>
           <p className="text-sm text-muted">{player.role.replaceAll("_", " ")}</p>
-          <p className="num mt-1 text-3xl font-bold">{formatPaise(player.midPaise)}</p>
+          <p className="num mt-1 text-3xl font-bold"><PriceText playerId={player.id} field="mid" paise={player.midPaise} /></p>
         </div>
       </div>
       <p className="mt-4 text-sm text-muted">{player.why[0] ?? "Simulated development price for this player."}</p>

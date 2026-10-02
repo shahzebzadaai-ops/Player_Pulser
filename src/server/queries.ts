@@ -1,4 +1,5 @@
 import type { PlayerRole, TradeSide } from "@prisma/client";
+import { publicPriceSource } from "@/domain/live-prices";
 import { changePercent, formatCompactInr } from "@/domain/money";
 import { feedIsStale, planWithdrawal } from "@/domain/rules";
 import { quoteFromMid } from "@/domain/spread";
@@ -136,7 +137,7 @@ async function loadPlayers(): Promise<{ players: PlayerView[]; stale: boolean; m
 }
 
 export async function publicPricePayload() {
-  const { players, stale } = await listPlayers();
+  const { players, stale, mode } = await listPlayers();
   const ids = players.map((player) => player.id);
   const [events, ticks] = await Promise.all([
     prisma.cricketEvent.findMany({
@@ -152,7 +153,7 @@ export async function publicPricePayload() {
       where: { playerId: { in: ids } },
       orderBy: { createdAt: "desc" },
       take: Math.max(ids.length, 1) * 2,
-      select: { playerId: true, createdAt: true, midPaise: true },
+      select: { playerId: true, createdAt: true, midPaise: true, previousMidPaise: true, source: true },
     }),
   ]);
   const eventByPlayer = new Map<string, string>();
@@ -161,22 +162,28 @@ export async function publicPricePayload() {
       if (playerId && !eventByPlayer.has(playerId)) eventByPlayer.set(playerId, event.normalizedDescription);
     }
   }
-  const tickByPlayer = new Map<string, { createdAt: Date; midPaise: bigint }>();
+  const tickByPlayer = new Map<string, { createdAt: Date; midPaise: bigint; previousMidPaise: bigint | null; source: string }>();
   for (const tick of ticks) {
     if (!tickByPlayer.has(tick.playerId)) tickByPlayer.set(tick.playerId, tick);
   }
   return {
+    type: "prices" as const,
     stale,
     at: new Date().toISOString(),
+    mode,
     players: players.map((player) => {
       const tick = tickByPlayer.get(player.id);
       return {
         id: player.id,
+        slug: player.slug,
         midPaise: player.midPaise,
         buyPaise: player.buyPaise,
         sellPaise: player.sellPaise,
+        previousMidPricePaise: tick?.previousMidPaise?.toString() ?? null,
         changePaise: player.changePaise,
         changePercent: player.changePercent,
+        createdAt: tick?.createdAt.toISOString() ?? null,
+        source: publicPriceSource(tick?.source, mode),
         stale: player.stale,
         live: player.live,
         lastEvent: eventByPlayer.get(player.id) ?? null,

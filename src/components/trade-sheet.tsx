@@ -2,27 +2,34 @@
 
 import { useState } from "react";
 import { formatPaise } from "@/domain/money";
+import { PriceFlash } from "./price-display";
+import { useLivePlayer } from "./price-stream";
 
 export function TradeSheet({
+  playerId,
   buyPaise,
   sellPaise,
   children,
 }: {
+  playerId: string;
   buyPaise: string;
   sellPaise: string;
   children: React.ReactNode;
 }) {
+  const live = useLivePlayer(playerId);
+  const buy = live?.buyPaise ?? buyPaise;
+  const sell = live?.sellPaise ?? sellPaise;
   const [open, setOpen] = useState(false);
   return (
     <>
       <div className="sticky bottom-24 z-30 grid grid-cols-2 gap-3">
         <button type="button" className="press min-h-12 rounded-2xl bg-gain font-bold text-pitch" onClick={() => setOpen(true)}>
           Buy
-          <span className="block text-xs font-medium">@ {formatPaise(buyPaise)}</span>
+          <span className="block text-xs font-medium">@ <PriceFlash value={Number(buy)}>{formatPaise(buy)}</PriceFlash></span>
         </button>
         <button type="button" className="press min-h-12 rounded-2xl bg-loss font-bold text-white" onClick={() => setOpen(true)}>
           Sell
-          <span className="block text-xs font-medium">@ {formatPaise(sellPaise)}</span>
+          <span className="block text-xs font-medium">@ <PriceFlash value={Number(sell)}>{formatPaise(sell)}</PriceFlash></span>
         </button>
       </div>
       {open ? (

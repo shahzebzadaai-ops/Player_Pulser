@@ -4,7 +4,7 @@ import { averageLatencyMs, listFeedHealth } from "@/server/feed";
 import { dbDiagnostics } from "@/server/db-diagnostics";
 import { getSystemHealth, type HealthState } from "@/server/ops-status";
 import { prisma } from "@/server/prisma";
-import { startRealtimeListener } from "@/server/realtime";
+import { realtimeDiagnostics, startRealtimeListener } from "@/server/realtime";
 
 export const metadata = { title: "System health" };
 
@@ -13,6 +13,7 @@ export default async function HealthPage() {
   await startRealtimeListener();
   const feed = await listFeedHealth();
   const health = await getSystemHealth();
+  const realtime = realtimeDiagnostics();
   const appDb = dbDiagnostics();
   const workerDbRow = await prisma.appSetting.findUnique({ where: { key: "ops.workerDb" } });
   const workerDb = workerDbStatus(workerDbRow?.value);
@@ -40,6 +41,16 @@ export default async function HealthPage() {
         <Row label="Last price application" state={health.feed.lastPriceApplicationState} detail={health.feed.lastPriceApplicationAt ?? "No performance price has been applied yet."} />
         <Row label="Postgres realtime listener" state={health.feed.listener} detail={health.feed.listenerAt ?? "The listener has not connected."} />
         <Row label="SSE" state={health.feed.sse} detail={health.feed.sseAt ? `Last customer snapshot ${health.feed.sseAt}` : "No customer stream has confirmed a snapshot yet. A quiet page is not a healthy feed."} />
+        <li className="rounded-xl border border-line bg-card px-3 py-2">
+          <span className="font-semibold">Price stream</span> · {realtime.listenerConnected ? "CONNECTED" : "DISCONNECTED"}
+          <span className="block text-xs text-muted">
+            Connected SSE clients {realtime.sseClients}
+            {realtime.lastBroadcastAt ? ` · Last SSE broadcast ${realtime.lastBroadcastAt}` : " · No SSE broadcast yet"}
+            {realtime.lastLatencyMs !== null ? ` · Tick to broadcast ${realtime.lastLatencyMs}ms` : ""}
+            {health.latestTickAt ? ` · Last server tick ${health.latestTickAt}` : " · No server tick yet"}
+            {health.worker === "HEALTHY" ? " · Worker alive" : " · Worker down"}
+          </span>
+        </li>
         <Row
           label="Latest price tick"
           state={health.ticks}

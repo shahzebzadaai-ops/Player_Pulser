@@ -8,6 +8,8 @@ import { runCricbuzzShadow, runFeedCycle } from "@/server/feed";
 import { runConsensusShadow } from "@/server/consensus-feed";
 import { advancePreparedShadowMatches } from "@/server/match-prepare";
 import { maintainPrices } from "@/server/price-cycle";
+import { getSettings } from "@/server/settings";
+import { simulationCycleMs } from "@/domain/settings";
 import { runPulsePreview } from "@/server/pulse-preview";
 import { backfillPlayerRiskControls } from "@/server/risk";
 import { withUserLock } from "@/server/ledger";
@@ -38,7 +40,6 @@ async function cycle() {
     await runCricbuzzShadow();
     await advancePreparedShadowMatches();
     await runConsensusShadow();
-    await maintainPrices();
     await expireBonuses();
     await markBonusExpiryRun();
     await expireStalePayments();
@@ -81,9 +82,38 @@ async function pulseTask() {
   }
 }
 
+let priceRunning = false;
+let priceTimer: ReturnType<typeof setTimeout> | undefined;
+
+async function priceTask() {
+  if (priceRunning) return;
+  priceRunning = true;
+  try {
+    await maintainPrices();
+  } catch (error) {
+    console.error(JSON.stringify({ level: "error", message: error instanceof Error ? error.message : "price cycle", at: new Date().toISOString() }));
+  } finally {
+    priceRunning = false;
+  }
+}
+
+async function schedulePrices() {
+  const started = Date.now();
+  await priceTask();
+  const settings = await getSettings().catch(() => null);
+  const wait = simulationCycleMs(settings?.simulationCycleMs);
+  const delay = Math.max(0, wait - (Date.now() - started));
+  priceTimer = setTimeout(() => {
+    void schedulePrices();
+  }, delay);
+}
+
 console.log(JSON.stringify({ level: "info", message: "PlayerPulser worker started", at: new Date().toISOString() }));
 void cycle().catch((error) => {
   console.error(JSON.stringify({ level: "error", message: error instanceof Error ? error.message : "worker", at: new Date().toISOString() }));
+});
+void schedulePrices().catch((error) => {
+  console.error(JSON.stringify({ level: "error", message: error instanceof Error ? error.message : "price schedule", at: new Date().toISOString() }));
 });
 void pulseTask();
 const timer = setInterval(() => {
@@ -98,6 +128,7 @@ const pulseTimer = setInterval(() => {
 function shutdown() {
   clearInterval(timer);
   clearInterval(pulseTimer);
+  if (priceTimer) clearTimeout(priceTimer);
   void prisma.$disconnect().finally(() => process.exit(0));
 }
 

@@ -22,6 +22,10 @@ describe("postgres realtime notices", () => {
     expect(sseHealth({ listener: "HEALTHY", lastPushAgeMs: 1_000 })).toBe("HEALTHY");
     expect(sseHealth({ listener: "DOWN", lastPushAgeMs: null })).toBe("DOWN");
     expect(sseRetryDelayMs(0)).toBe(1000);
-    expect(sseRetryDelayMs(4)).toBe(10_000);
+    expect(sseRetryDelayMs(1)).toBe(2000);
+    expect(sseRetryDelayMs(2)).toBe(4000);
+    expect(sseRetryDelayMs(3)).toBe(8000);
+    expect(sseRetryDelayMs(4)).toBe(15_000);
+    expect(sseRetryDelayMs(8)).toBe(15_000);
   });
 });

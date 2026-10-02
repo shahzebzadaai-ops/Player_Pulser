@@ -1,7 +1,8 @@
 import { useId } from "react";
-import { formatPaise, formatPercent, formatSignedPaise } from "@/domain/money";
 import { playerArtworkAlt, playerArtworkSrc } from "@/domain/player-artwork";
 import { PlayerArt } from "./player-art";
+
+export { PriceText, Sparkline } from "./price-display";
 
 export function roleLabel(role: string): string {
   if (role === "ALL_ROUNDER") return "All-rounder";
@@ -77,52 +78,3 @@ export function LiveDot({ live, playerId }: { live: boolean; playerId?: string }
   );
 }
 
-export function Sparkline({ values, positive }: { values: number[]; positive: boolean }) {
-  if (values.length < 2) return <div className="h-9" />;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const width = 120;
-  const height = 36;
-  const span = max - min || 1;
-  const path = values
-    .map((value, index) => {
-      const x = (index / (values.length - 1)) * width;
-      const y = height - ((value - min) / span) * (height - 6) - 3;
-      return `${index === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`;
-    })
-    .join(" ");
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="h-9 w-full" aria-hidden>
-      <path d={path} fill="none" stroke={positive ? "#1ed760" : "#ff4d5e"} strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-export function PriceText({
-  playerId,
-  field,
-  paise,
-  changePaise,
-  changePercent,
-}: {
-  playerId: string;
-  field: "mid" | "change" | "buy" | "sell";
-  paise?: string;
-  changePaise?: string;
-  changePercent?: number;
-}) {
-  const up = Number(changePaise ?? "0") >= 0;
-  const text =
-    field === "change"
-      ? `${formatSignedPaise(changePaise ?? "0")} (${formatPercent(changePercent ?? 0)})`
-      : formatPaise(paise ?? "0");
-  return (
-    <span
-      data-price-for={playerId}
-      data-field={field}
-      className={`num ${field === "change" ? (up ? "text-gain" : "text-loss") : ""}`}
-    >
-      {text}
-    </span>
-  );
-}

@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { BannerSlot } from "@/components/banner-slot";
 import { LiveCard, MoverCard, Notice, SectionHead } from "@/components/cards";
+import { MarketPulse } from "@/components/price-display";
+import { PlayerTicker } from "@/components/player-ticker";
 import { LogoutButton, WelcomeBanner } from "@/components/chrome";
-import { LiveDot, Logo, Portrait, PriceText } from "@/components/visuals";
+import { Logo, Portrait } from "@/components/visuals";
 import { customerCta, lifecycleStage } from "@/domain/growth";
 import { formatPaise, formatPercent, formatSignedPaise } from "@/domain/money";
 import { getCurrentUser } from "@/server/current-user";
@@ -107,18 +109,8 @@ export default async function HomePage() {
           <WelcomeBanner />
         </div>
       ) : null}
-      <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-card py-2">
-        <div className="ticker-track px-4 text-xs">
-          {[...market.players, ...market.players].map((player, index) => (
-            <span key={`${player.id}-${index}`} className="inline-flex items-center gap-2">
-              <LiveDot live={player.live} />
-              <span>{player.shortName}</span>
-              <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
-              <PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />
-            </span>
-          ))}
-        </div>
-      </div>
+      <MarketPulse />
+      <PlayerTicker players={market.players} />
       <div className="mt-3">
         <Notice />
       </div>
