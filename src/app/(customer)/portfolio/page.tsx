@@ -32,7 +32,7 @@ export default async function PortfolioPage() {
                   <Portrait name={position.name} seed={position.slug} className="h-20 w-16" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate font-semibold">{position.name}</p>
+                      <p className="wrap-anywhere font-semibold">{position.name}</p>
                       <LiveDot live={position.live} />
                     </div>
                     <p className="text-xs text-muted">{position.quantity} Pulsers · avg {formatPaise(position.averagePaise)}</p>
@@ -42,8 +42,8 @@ export default async function PortfolioPage() {
                 <LivePositionValue playerId={position.playerId} quantity={position.quantity} midPaise={position.midPaise} costPaise={position.costPaise} />
                 <Sparkline playerId={position.playerId} values={position.history} positive={up} />
                 <div className="mt-2 grid grid-cols-2 gap-2">
-                  <Link href={`/players/${position.slug}?side=buy`} className="press flex min-h-11 items-center justify-center rounded-xl bg-gain text-sm font-bold text-pitch">Buy more</Link>
-                  <Link href={`/players/${position.slug}?side=sell`} className="press flex min-h-11 items-center justify-center rounded-xl bg-loss text-sm font-bold text-white">Sell</Link>
+                  <Link href={`/players/${position.slug}?side=buy`} className="btn-primary press w-full text-sm">Buy more</Link>
+                  <Link href={`/players/${position.slug}?side=sell`} className="btn-sell press w-full text-sm">Sell</Link>
                 </div>
               </li>
             );
@@ -55,11 +55,11 @@ export default async function PortfolioPage() {
         {book.trades.length === 0 ? <p className="mt-2 text-sm text-muted">Trades will show here after you buy or sell.</p> : null}
         <ul className="mt-2 space-y-2 text-sm">
           {book.trades.map((trade) => (
-            <li key={trade.id} className="flex justify-between rounded-xl bg-card px-3 py-3">
-              <span>
+            <li key={trade.id} className="flex min-w-0 items-start justify-between gap-3 rounded-xl bg-card px-3 py-3">
+              <span className="wrap-anywhere min-w-0">
                 {trade.side} {trade.quantity} {trade.playerName}
               </span>
-              <span className="num">{formatPaise(trade.unitPaise)}</span>
+              <span className="num shrink-0">{formatPaise(trade.unitPaise)}</span>
             </li>
           ))}
         </ul>

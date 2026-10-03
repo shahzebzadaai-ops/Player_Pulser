@@ -26,7 +26,7 @@ export default async function RewardsPage() {
       {bonus ? (
         <section className="mt-4 rounded-3xl border border-gold/40 bg-card p-4">
           <p className="text-xs font-semibold text-gold">{features.loyaltyEnabled ? "LOYALTY · " : ""}WELCOME BONUS · {bonus.status}</p>
-          <p className="num mt-1 text-4xl font-bold text-gold">{formatPaise(bonus.amountPaise)}</p>
+          <p className="num wrap-anywhere mt-1 text-[clamp(1.75rem,8vw,2.25rem)] font-bold text-gold">{formatPaise(bonus.amountPaise)}</p>
           <p className="mt-2 text-sm text-muted">Usable now for trading. Bonus-derived value becomes withdrawable only after the conditions below.</p>
           <p className="mt-4 text-sm">Wagering {formatPaise(bonus.progressPaise)} of {formatPaise(bonus.requiredPaise)}</p>
           <div className="mt-1 h-2 rounded-full bg-pitch">

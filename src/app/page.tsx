@@ -8,7 +8,9 @@ import { FeaturedPlayerHero } from "@/components/featured-player";
 import { MarketPulse } from "@/components/price-display";
 import { PlayerTicker } from "@/components/player-ticker";
 import { ShowcaseMark, StreamStatus } from "@/components/price-stream";
+import { DemoEntry } from "@/components/demo-entry";
 import { Logo } from "@/components/visuals";
+import { investorDemoEnabled } from "@/domain/investor-demo";
 import { selectFeaturedPlayers } from "@/domain/featured";
 import { formatPaise } from "@/domain/money";
 import { getCurrentUser } from "@/server/current-user";
@@ -43,16 +45,17 @@ export default async function LandingPage() {
   }
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-[430px] px-4 pb-10 pt-5">
-      <header className="flex items-center justify-between">
+    <main className="mx-auto min-h-dvh w-full max-w-[430px] px-4 pb-44 pt-5">
+      <header className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2">
         <Logo />
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
           <ShowcaseMark />
           <StreamStatus />
-          <Link href="/signup" className="min-h-11 rounded-xl bg-india px-3 py-2 text-sm font-semibold">
+          {investorDemoEnabled() ? <DemoEntry /> : null}
+          <Link href="/signup" className="btn-primary px-3 text-sm">
             Sign up
           </Link>
-          <Link href="/login" className="min-h-11 rounded-xl px-3 py-2 text-sm text-india">
+          <Link href="/login" className="btn-secondary px-3 text-sm">
             Log in
           </Link>
         </div>
@@ -61,11 +64,17 @@ export default async function LandingPage() {
       <PlayerTicker players={players} />
       <BannerSlot placement="LANDING_HERO" />
       <section className="relative mt-6 overflow-hidden rounded-3xl bg-gradient-to-br from-[#12386f] to-[#07111f] p-5">
-        <p className="max-w-[14rem] text-4xl font-bold leading-tight">
+        <p className="min-w-0 text-[clamp(1.65rem,7.4vw,2.15rem)] font-bold leading-[1.08]">
           Trade the <span className="text-india">Pulse</span> of Cricket
         </p>
-        <p className="mt-3 max-w-[16rem] text-sm text-muted">Buy top Indian players. Track live prices. Sell at the right moment.</p>
-        <p className="mt-4 max-w-[9rem] text-right text-sm font-semibold text-india">Players move. So can you.</p>
+        <p className="mt-3 text-sm text-muted">Buy top Indian players. Track live prices. Sell at the right moment.</p>
+        <div className="mt-4 rounded-2xl bg-black/25 p-3">
+          <p className="text-sm font-semibold">₹200 welcome bonus</p>
+          <p className="mt-1 text-xs text-muted">Create an account to claim it, then deposit from ₹500 to trade.</p>
+          <Link href="/signup" className="btn-primary mt-3 text-sm">
+            Deposit
+          </Link>
+        </div>
       </section>
       <ul className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
         <li className="rounded-full bg-card px-3 py-1">Live updates</li>
@@ -90,13 +99,13 @@ export default async function LandingPage() {
         <h2 className="text-lg font-semibold">Top movers</h2>
         <div className="mt-3 grid grid-cols-2 gap-3">
           {movers.map((player) => (
-            <LiveCard key={player.id} player={player} />
+            <LiveCard key={player.id} player={player} className="min-w-0 w-full" />
           ))}
         </div>
       </section>
       <section className="mt-6">
         <h2 className="text-lg font-semibold">How it works</h2>
-        <ol className="mt-3 grid grid-cols-3 gap-2 text-center text-xs text-muted">
+        <ol className="mt-3 grid gap-2 text-sm text-muted">
           <li className="rounded-2xl bg-card p-3">
             <span className="mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-india font-bold text-ink">1</span>
             Sign up. The ₹200 Welcome Bonus is added once.
@@ -111,7 +120,7 @@ export default async function LandingPage() {
           </li>
         </ol>
       </section>
-      <Link href="/signup" className="mt-6 flex min-h-12 items-center justify-center rounded-full bg-india text-base font-semibold">
+      <Link href="/signup" className="btn-primary mt-6 w-full text-base">
         Start trading players
       </Link>
       <p className="mt-4 text-center text-xs text-muted">Trusted as a development preview · Made for India · Simulated money</p>

@@ -160,7 +160,7 @@ function PulseItem({ quote }: { quote: ExternalQuote }) {
   const up = (quote.changePercent ?? 0) >= 0;
   const direction = quote.changePercent === null ? "text-muted" : up ? "text-gain" : "text-loss";
   return (
-    <span title={quote.source} className="inline-flex items-center gap-2 text-xs">
+    <span title={quote.source} className="inline-flex items-center gap-2 whitespace-nowrap text-xs">
       <span className="font-semibold tracking-wide">{quote.label}</span>
       <PriceFlash value={quote.price ?? Number.NaN}>
         <span className="num font-semibold">{formatExternalPrice(quote)}</span>
@@ -209,12 +209,20 @@ export function MarketPulse() {
   const quotes = markets.length > 0 ? markets : PLACEHOLDER;
   return (
     <section aria-label="Global market pulse" className="mt-3 rounded-2xl border border-line bg-card px-3 py-2">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[11px] font-semibold tracking-[0.14em] text-muted">GLOBAL MARKET PULSE</h2>
+      <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h2 className="min-w-0 text-[11px] font-semibold tracking-wide text-muted">GLOBAL MARKET PULSE</h2>
         <p className="text-[10px] text-muted">External reference</p>
       </div>
       <div
-        className="marquee-window mt-2 overflow-hidden"
+        className="marquee-window mt-2"
+        tabIndex={0}
+        role="region"
+        aria-label="Global market pulse. Use arrow keys to scroll."
+        onKeyDown={(event) => {
+          if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+          event.preventDefault();
+          event.currentTarget.scrollBy({ left: event.key === "ArrowRight" ? 96 : -96, behavior: "smooth" });
+        }}
         onPointerEnter={() => setPaused(true)}
         onPointerLeave={() => setPaused(false)}
         onPointerDown={() => setPaused(true)}

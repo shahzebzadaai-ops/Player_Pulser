@@ -43,7 +43,7 @@ export default async function MarketPage({
             className="mt-1 min-h-12 w-full rounded-2xl border border-line bg-card px-3"
           />
         </label>
-        <div className="flex gap-2 overflow-x-auto text-sm">
+        <div className="flex max-w-full gap-2 overflow-x-auto text-sm">
           <Link href="/market" className={`min-h-11 shrink-0 rounded-full px-3 py-2 ${!params.role && params.live !== "1" ? "bg-india" : "bg-card"}`}>
             All
           </Link>
@@ -66,7 +66,7 @@ export default async function MarketPage({
             <option value="price">Price</option>
           </select>
         </label>
-        <button className="min-h-11 rounded-full bg-india px-4 text-sm font-semibold" type="submit">
+        <button className="btn-primary text-sm" type="submit">
           Apply
         </button>
       </form>

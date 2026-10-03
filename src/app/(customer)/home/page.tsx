@@ -47,9 +47,9 @@ export default async function HomePage() {
 
   return (
     <main className="px-4 pt-4">
-      <header className="flex items-center justify-between">
+      <header className="flex min-w-0 flex-wrap items-center justify-between gap-2">
         <Logo />
-        <div className="flex gap-2">
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
           <Link href="/market" className="flex h-11 w-11 items-center justify-center rounded-full bg-card" aria-label="Search market">
             ⌕
           </Link>
@@ -59,31 +59,31 @@ export default async function HomePage() {
           <LogoutButton />
         </div>
       </header>
-      <div className="mt-4 flex items-center gap-3">
-        <Portrait name={user.displayName} seed={user.id} className="h-12 w-12 rounded-full" />
-        <div>
-          <h1 className="text-xl font-bold">Hi, {user.displayName}!</h1>
+      <div className="mt-4 flex min-w-0 items-center gap-3">
+        <Portrait name={user.displayName} seed={user.id} className="h-12 w-12 shrink-0 rounded-full" />
+        <div className="min-w-0">
+          <h1 className="wrap-anywhere text-xl font-bold">Hi, {user.displayName}!</h1>
           <p className="text-sm text-muted">Trade players. Track live prices. Be ahead.</p>
         </div>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <section className="min-w-0 rounded-2xl border border-line bg-card p-3">
+          <p className="text-xs text-muted">Cash balance</p>
+          <p className="num wrap-anywhere mt-1 text-[clamp(1rem,4.2vw,1.125rem)] font-bold leading-tight">{formatPaise(wallet.cashPaise)}</p>
+          <Link href="/wallet/deposit" className="btn-primary mt-3 w-full text-sm">
+            Deposit
+          </Link>
+        </section>
+        <section className="min-w-0 rounded-2xl border border-gold/40 bg-card p-3">
+          <p className="text-xs text-gold">Bonus balance</p>
+          <p className="num wrap-anywhere mt-1 text-[clamp(1rem,4.2vw,1.125rem)] font-bold leading-tight text-gold">{formatPaise(wallet.bonusPaise)}</p>
+        </section>
       </div>
       {user.role === "ADMIN" ? (
         <Link href="/admin" className="mt-3 inline-flex min-h-11 items-center text-sm text-india">
           Open admin
         </Link>
       ) : null}
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <section className="rounded-2xl border border-line bg-card p-3">
-          <p className="text-xs text-muted">Cash balance</p>
-          <p className="num mt-1 text-lg font-bold">{formatPaise(wallet.cashPaise)}</p>
-          <Link href="/wallet/deposit" className="mt-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-india text-lg" aria-label="Deposit">
-            +
-          </Link>
-        </section>
-        <section className="rounded-2xl border border-gold/40 bg-card p-3">
-          <p className="text-xs text-gold">Bonus balance</p>
-          <p className="num mt-1 text-lg font-bold text-gold">{formatPaise(wallet.bonusPaise)}</p>
-        </section>
-      </div>
       <div className="mt-4">
         <FeaturedPlayerHero players={featured} tradeHref="player" />
       </div>
@@ -158,10 +158,10 @@ export default async function HomePage() {
                 <Link href={`/players/${position.slug}`} className="flex items-center gap-3 rounded-2xl bg-card p-3">
                   <Portrait name={position.name} seed={position.slug} className="h-14 w-12" />
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{position.name}</p>
+                    <p className="wrap-anywhere font-semibold">{position.name}</p>
                     <p className="text-xs text-muted">{position.quantity} units</p>
                   </div>
-                  <div className="text-right text-xs">
+                  <div className="min-w-0 shrink text-right text-xs">
                     <p className="text-muted">Current value</p>
                     <p className="num font-semibold">{formatPaise(position.currentPaise)}</p>
                     <p className={Number(position.pnlPaise) >= 0 ? "text-gain" : "text-loss"}>

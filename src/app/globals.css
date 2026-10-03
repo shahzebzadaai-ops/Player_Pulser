@@ -18,10 +18,12 @@
 
 html {
   background: #07111f;
+  max-width: 100%;
 }
 
 body {
   min-height: 100dvh;
+  max-width: 100%;
   background:
     radial-gradient(900px 420px at 50% -80px, rgba(47, 123, 255, 0.35), transparent 60%),
     radial-gradient(700px 380px at 110% 10%, rgba(18, 90, 48, 0.28), transparent 55%),
@@ -36,6 +38,8 @@ body {
 
 .snap-row {
   display: flex;
+  max-width: 100%;
+  min-width: 0;
   gap: 0.75rem;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
@@ -97,7 +101,65 @@ select {
   animation: flash-down 550ms ease;
 }
 
+.wrap-anywhere {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-sell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.btn-primary {
+  border: 1px solid rgba(190, 216, 255, 0.7);
+  background: linear-gradient(180deg, #5b9bff 0%, #2f7bff 58%, #1b5ed8 100%);
+  color: #f7fbff;
+  box-shadow:
+    0 0 0 1px rgba(47, 123, 255, 0.35),
+    0 0 22px rgba(47, 123, 255, 0.55);
+}
+
+.btn-secondary {
+  border: 1px solid #3d5d8a;
+  background: #12243d;
+  color: #e7f0ff;
+}
+
+.btn-sell {
+  border: 1px solid rgba(255, 120, 136, 0.7);
+  background: rgba(255, 77, 94, 0.14);
+  color: #ffb3bc;
+}
+
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-sell:focus-visible {
+  outline: 2px solid #e8f1ff;
+  outline-offset: 3px;
+}
+
+.btn-primary:disabled,
+.btn-sell:disabled,
+.btn-secondary:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+}
+
 .marquee-window {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
   scrollbar-width: none;
 }
 
@@ -124,6 +186,38 @@ select {
 
   .player-marquee {
     animation-duration: 65s;
+  }
+}
+
+@media (max-width: 767px), ((pointer: coarse) and (max-width: 1024px)) {
+  .market-marquee,
+  .player-marquee {
+    animation: none;
+  }
+
+  .marquee-window:has(.player-marquee) {
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .player-marquee > :last-child,
+  .market-marquee > :last-child {
+    display: none;
+  }
+
+  .market-marquee {
+    display: block;
+    width: 100%;
+  }
+
+  .market-marquee > :first-child {
+    display: flex;
+    width: 100%;
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+    column-gap: 1rem;
+    padding-right: 0;
   }
 }
 

@@ -1,5 +1,6 @@
 import { BannerSlot } from "@/components/banner-slot";
 import { WalletPanel } from "@/components/wallet-panel";
+import { isInvestorDemoIdentity } from "@/domain/investor-demo";
 import { formatPaise, formatSignedPaise } from "@/domain/money";
 import { getCurrentUser } from "@/server/current-user";
 import { getFeatures } from "@/server/features";
@@ -14,10 +15,15 @@ export default async function WalletPage() {
   return (
     <main className="px-4 pt-4">
       <h1 className="text-2xl font-bold">Wallet</h1>
+      {isInvestorDemoIdentity(user) ? (
+        <p className="mt-3 rounded-2xl border border-india/40 bg-card p-3 text-sm text-muted">
+          This is simulated demo money. Deposits and withdrawals stay off so the demo cannot create a payment.
+        </p>
+      ) : null}
       <BannerSlot placement="WALLET" />
       <section className="mt-4 rounded-3xl bg-gradient-to-br from-[#16448f] to-card p-4">
         <p className="text-xs text-muted">Available cash</p>
-        <p className="num text-3xl font-bold">{formatPaise(wallet.cashPaise)}</p>
+        <p className="num wrap-anywhere text-[clamp(1.6rem,8vw,1.875rem)] font-bold">{formatPaise(wallet.cashPaise)}</p>
       </section>
       <section className="mt-4 grid grid-cols-2 gap-3">
         <Balance label="Cash" value={formatPaise(wallet.cashPaise)} />
@@ -40,9 +46,9 @@ export default async function WalletPage() {
         <ul className="mt-2 space-y-2 text-sm">
           {wallet.entries.map((entry) => (
             <li key={entry.id} className="rounded-xl bg-card px-3 py-3">
-              <div className="flex justify-between gap-3">
-                <span>{entry.description}</span>
-                <span className="num">{formatSignedPaise(entry.amountPaise)}</span>
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <span className="wrap-anywhere min-w-0">{entry.description}</span>
+                <span className="num shrink-0">{formatSignedPaise(entry.amountPaise)}</span>
               </div>
               <p className="text-xs text-muted">
                 {entry.account} · {new Date(entry.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST
@@ -59,7 +65,7 @@ function Balance({ label, value }: { label: string; value: string }) {
   return (
     <section className="rounded-2xl bg-card p-3">
       <p className="text-xs text-muted">{label}</p>
-      <p className="num mt-1 font-semibold">{value}</p>
+      <p className="num wrap-anywhere mt-1 font-semibold">{value}</p>
     </section>
   );
 }

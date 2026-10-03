@@ -3,6 +3,7 @@ import { promisify } from "util";
 import { Prisma, type User } from "@prisma/client";
 import { AppError } from "@/domain/errors";
 import { otpAttemptAllowed, otpResendAllowed } from "@/domain/growth";
+import { INVESTOR_DEMO_EMAIL, isInvestorDemoIdentity } from "@/domain/investor-demo";
 import { devAuthAllowed, normalizeIndianPhone, passwordIssue } from "@/domain/phone";
 import { prisma, type Tx } from "./prisma";
 import { grantWelcomeBonus } from "./bonus";
@@ -101,6 +102,9 @@ export async function signup(input: {
   if (phone && (await prisma.user.findUnique({ where: { phone } }))) {
     throw new AppError("EXISTS", "An account with this mobile number already exists.", 409);
   }
+  if (email === INVESTOR_DEMO_EMAIL) {
+    throw new AppError("EXISTS", "An account with this email already exists.", 409);
+  }
   if (email && (await prisma.user.findUnique({ where: { email } }))) {
     throw new AppError("EXISTS", "An account with this email already exists.", 409);
   }
@@ -137,7 +141,7 @@ export async function loginWithPassword(identifier: string, password: string): P
   const user = phone
     ? await prisma.user.findUnique({ where: { phone } })
     : await prisma.user.findUnique({ where: { email } });
-  if (!user?.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
+  if (!user?.passwordHash || isInvestorDemoIdentity(user) || !(await verifyPassword(password, user.passwordHash))) {
     throw new AppError("INVALID_LOGIN", "Phone or password is incorrect.", 401);
   }
   return user;

@@ -145,7 +145,7 @@ export function useStreamLabel(): StreamLabel {
 export function ShowcaseMark() {
   const mode = usePriceStore().marketMode;
   if (mode !== "SHOWCASE") return null;
-  return <p className="text-[10px] font-semibold tracking-[0.14em] text-muted">SHOWCASE MARKET</p>;
+  return <p className="whitespace-nowrap text-[10px] font-semibold tracking-wide text-muted">SHOWCASE MARKET</p>;
 }
 
 export function StreamStatus() {
@@ -153,7 +153,7 @@ export function StreamStatus() {
   const text = label === "live" ? "LIVE" : label === "delayed" ? "DELAYED" : "RECONNECTING";
   const dot = label === "live" ? "is-live" : label === "delayed" ? "bg-[#e6b325]" : "bg-[#ff4d5e]";
   return (
-    <p role="status" aria-live="polite" className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-muted">
+    <p role="status" aria-live="polite" className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold tracking-wide text-muted">
       <span className={`live-dot ${dot}`} />
       {text}
     </p>

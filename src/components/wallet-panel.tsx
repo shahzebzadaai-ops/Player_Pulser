@@ -82,7 +82,7 @@ export function WalletPanel({
           Amount in rupees
           <input className="mt-1 min-h-12 w-full rounded-2xl border border-line bg-pitch px-3" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} />
         </label>
-        <button disabled={pending} className="mt-3 min-h-12 w-full rounded-full bg-india font-semibold disabled:opacity-50">
+        <button disabled={pending} className="btn-primary mt-3 w-full">
           Deposit
         </button>
       </form> : <p className="rounded-3xl border border-line bg-card p-4 text-sm">Deposits are temporarily unavailable.</p>}
@@ -98,7 +98,7 @@ export function WalletPanel({
           <p className="mt-2 text-sm">Taking the last of a balance below ₹500 is an open business decision, so this button stays off.</p>
         )}
         {withdrawalsEnabled ? (
-          <button type="button" disabled={pending || !withdrawal.allowed} onClick={withdraw} className="mt-3 min-h-12 w-full rounded-full bg-card-2 font-semibold disabled:opacity-40">
+          <button type="button" disabled={pending || !withdrawal.allowed} onClick={withdraw} className="btn-secondary mt-3 w-full">
             Withdraw 95%
           </button>
         ) : (

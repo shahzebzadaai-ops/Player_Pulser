@@ -4,6 +4,7 @@ import { customerDepositAllowed } from "@/domain/growth";
 import { noteDepositStarted } from "@/server/attribution";
 import { assertDepositsEnabled } from "@/server/features";
 import { createDeposit } from "@/server/payments";
+import { assertDemoPaymentsBlocked } from "@/server/investor-demo";
 import { assertSameOrigin, handle, idempotencyKey, json, readBody, requireUser } from "@/server/http";
 import { assertDurableRate } from "@/server/rate-limit";
 
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
   return handle(async () => {
     assertSameOrigin(request);
     const user = await requireUser(request);
+    assertDemoPaymentsBlocked(user);
     await assertDurableRate("deposit", user.id, 10 * 60_000, 8);
     await assertDepositsEnabled();
     const body = await readBody(request, schema);

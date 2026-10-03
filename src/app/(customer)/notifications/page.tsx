@@ -17,7 +17,7 @@ export default async function NotificationsPage() {
               <p className="text-xs text-muted">
                 {event.overLabel} · {event.kind} · simulated
               </p>
-              <p className="mt-1 text-sm">
+              <p className="wrap-anywhere mt-1 text-sm">
                 {event.playerName}: {event.summary}
               </p>
             </Link>

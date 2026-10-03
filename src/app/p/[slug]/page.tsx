@@ -67,13 +67,13 @@ export default async function PublicPlayerPage({ params }: { params: Promise<{ s
       <p className="text-xs text-muted">Public player page · simulated development price</p>
       <div className="mt-4 flex gap-3">
         <Portrait name={player.name} seed={player.slug} className="h-36 w-28" />
-        <div>
-          <h1 className="text-2xl font-bold">{player.name}</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="wrap-anywhere text-[clamp(1.35rem,6vw,1.5rem)] font-bold leading-tight">{player.name}</h1>
           <p className="text-sm text-muted">{player.role.replaceAll("_", " ")}</p>
-          <p className="num mt-1 text-3xl font-bold"><PriceText playerId={player.id} field="mid" paise={player.midPaise} /></p>
+          <p className="num wrap-anywhere mt-1 text-[clamp(1.5rem,7vw,1.875rem)] font-bold"><PriceText playerId={player.id} field="mid" paise={player.midPaise} /></p>
         </div>
       </div>
-      <p className="mt-4 text-sm text-muted">{player.why[0] ?? "Simulated development price for this player."}</p>
+      <p className="wrap-anywhere mt-4 text-sm text-muted">{player.why[0] ?? "Simulated development price for this player."}</p>
       {player.pulse ? (
         <PulsePanel
           playerId={player.id}
@@ -84,7 +84,7 @@ export default async function PublicPlayerPage({ params }: { params: Promise<{ s
         />
       ) : null}
       <HowPricesWork />
-      <Link href="/login" className="mt-6 flex min-h-12 items-center justify-center rounded-full bg-india font-semibold">
+      <Link href="/login" className="btn-primary mt-6 w-full">
         Sign in to trade
       </Link>
     </main>

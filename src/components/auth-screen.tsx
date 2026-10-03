@@ -108,7 +108,7 @@ export function AuthScreen({ mode, devAuth }: { mode: "login" | "signup"; devAut
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-[430px] px-4 py-6">
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-6 flex min-w-0 items-start justify-between gap-3">
         <Logo />
         <p className="max-w-28 text-right text-[11px] text-muted">India&apos;s first player trading platform</p>
       </div>
@@ -118,15 +118,15 @@ export function AuthScreen({ mode, devAuth }: { mode: "login" | "signup"; devAut
           <p className="mt-2 text-sm">
             {done.bonusStatus === "ACTIVE" ? "₹200 Welcome Bonus added" : "Your account is ready. The welcome bonus is being checked."}
           </p>
-          <Link href="/wallet/deposit" className="mt-4 flex min-h-12 items-center justify-center rounded-full bg-india font-semibold">
+          <Link href="/wallet/deposit" className="btn-primary mt-4 w-full">
             DEPOSIT NOW
           </Link>
-          <Link href="/home" className="mt-2 flex min-h-12 items-center justify-center rounded-full border border-line">
+          <Link href="/home" className="btn-secondary mt-2 w-full">
             EXPLORE PLAYERS
           </Link>
         </section>
       ) : null}
-      {done ? null : <h1 className="text-4xl font-bold leading-tight">
+      {done ? null : <h1 className="text-[clamp(1.75rem,8vw,2.25rem)] font-bold leading-tight">
         {mode === "signup" ? "Create your PlayerPulser account" : "Log in"}
       </h1>}
       {done ? null : <p className="mt-2 text-sm text-muted">{mode === "signup" ? "Get ₹200 Welcome Bonus" : "Trade the pulse of cricket."}</p>}
@@ -135,7 +135,7 @@ export function AuthScreen({ mode, devAuth }: { mode: "login" | "signup"; devAut
           <p className="text-xs font-semibold tracking-wide text-gain">WELCOME BONUS</p>
           <p className="mt-1 text-4xl font-bold text-gain">₹200</p>
           <p className="font-semibold">Welcome Bonus</p>
-          <ul className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-muted">
+          <ul className="mt-3 grid gap-1 text-sm text-muted">
             <li>Use on any player</li>
             <li>Bonus must be paired with real cash</li>
             <li>14 day validity</li>
@@ -194,7 +194,7 @@ export function AuthScreen({ mode, devAuth }: { mode: "login" | "signup"; devAut
             {message}
           </p>
         ) : null}
-        <button type="submit" disabled={pending || (mode === "signup" && !agreed)} className="min-h-12 w-full rounded-full bg-india text-base font-semibold disabled:opacity-60">
+        <button type="submit" disabled={pending || (mode === "signup" && !agreed)} className="btn-primary w-full text-base">
           {mode === "signup" ? "Create Account" : "Log in"}
         </button>
       </form>}
@@ -209,12 +209,12 @@ export function AuthScreen({ mode, devAuth }: { mode: "login" | "signup"; devAut
             Development OTP: <strong className="num">{otp.devCode}</strong>. This code is shown only while development authentication is on.
           </p>
           <input className="min-h-12 w-full rounded-2xl border border-line bg-pitch px-3" inputMode="numeric" value={code} onChange={(event) => setCode(event.target.value)} placeholder="Enter the code" />
-          <button className="min-h-12 w-full rounded-full border border-line" type="submit" disabled={mode === "signup" && !agreed}>
+          <button className="btn-secondary w-full" type="submit" disabled={mode === "signup" && !agreed}>
             Verify code
           </button>
         </form>
       ) : (
-        <button type="button" className="min-h-12 w-full rounded-full border border-line" onClick={sendOtp}>
+        <button type="button" className="btn-secondary w-full" onClick={sendOtp}>
           Continue with OTP
         </button>
       )}
@@ -223,10 +223,10 @@ export function AuthScreen({ mode, devAuth }: { mode: "login" | "signup"; devAut
           <p className="font-semibold">Development login</p>
           <p className="mt-1 text-muted">Passwordless entry for seeded accounts. It returns not found in production.</p>
           <div className="mt-2 grid gap-2">
-            <button type="button" className="min-h-11 rounded-xl bg-card" onClick={() => dev("9876543210")}>
+            <button type="button" className="btn-secondary w-full" onClick={() => dev("9876543210")}>
               Continue as Cricket Fan
             </button>
-            <button type="button" className="min-h-11 rounded-xl bg-card" onClick={() => dev("9000000001")}>
+            <button type="button" className="btn-secondary w-full" onClick={() => dev("9000000001")}>
               Continue as admin
             </button>
           </div>

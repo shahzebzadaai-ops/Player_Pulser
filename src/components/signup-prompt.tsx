@@ -42,15 +42,15 @@ export function SignupPrompt() {
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[430px] p-3">
+    <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[430px] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <section className="rounded-3xl border border-line bg-card p-4 shadow-lg">
         <h2 className="text-lg font-bold">Start Trading Players</h2>
         <p className="mt-1 text-sm text-muted">Sign up and get ₹200 Welcome Bonus</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <Link href="/signup" className="flex min-h-12 items-center justify-center rounded-full bg-india font-semibold">
+          <Link href="/signup" className="btn-primary w-full">
             SIGN UP
           </Link>
-          <button type="button" className="min-h-12 rounded-full border border-line" onClick={later}>
+          <button type="button" className="btn-secondary w-full" onClick={later}>
             MAYBE LATER
           </button>
         </div>

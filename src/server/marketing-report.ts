@@ -1,6 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { rate, sourceBucket, type DateRange } from "@/domain/attribution";
+import { INVESTOR_DEMO_EMAIL } from "@/domain/investor-demo";
 import { operationalNgr, summarizeBonus } from "@/domain/reporting";
+import { investorDemoUserId } from "./investor-demo";
 import { prisma } from "./prisma";
 
 type Span = { start: Date; end: Date };
@@ -10,46 +12,59 @@ function inSpan(span: Span) {
 }
 
 export async function businessPulse(span: Span) {
+  const demoId = await investorDemoUserId();
+  const demoCorrelations = demoId
+    ? await prisma.ledgerEntry.findMany({ where: { userId: demoId }, select: { correlationId: true } })
+    : [];
+  const correlationIds = [...new Set(demoCorrelations.map((row) => row.correlationId))];
+  const notDemoUser = demoId ? { userId: { not: demoId } } : {};
   const [deposits, withdrawals, trades, bonusLines, positions, ggrRows, activeTraders, firstDepositors, firstTrades, signups, activeUsers] = await Promise.all([
-    prisma.payment.aggregate({ where: { kind: "DEPOSIT", status: "SETTLED", settledAt: inSpan(span) }, _sum: { amountPaise: true } }),
-    prisma.payment.aggregate({ where: { kind: "PAYOUT", status: "SETTLED", settledAt: inSpan(span) }, _sum: { amountPaise: true } }),
-    prisma.trade.aggregate({ where: { createdAt: inSpan(span) }, _sum: { cashPaise: true, bonusPaise: true } }),
+    prisma.payment.aggregate({ where: { kind: "DEPOSIT", status: "SETTLED", settledAt: inSpan(span), ...notDemoUser }, _sum: { amountPaise: true } }),
+    prisma.payment.aggregate({ where: { kind: "PAYOUT", status: "SETTLED", settledAt: inSpan(span), ...notDemoUser }, _sum: { amountPaise: true } }),
+    prisma.trade.aggregate({ where: { createdAt: inSpan(span), ...notDemoUser }, _sum: { cashPaise: true, bonusPaise: true } }),
     prisma.ledgerEntry.findMany({
       where: {
         createdAt: inSpan(span),
         entryType: { in: ["BONUS_GRANT", "TRADE_BUY", "BONUS_EXPIRE", "BONUS_CONVERT"] },
+        ...(correlationIds.length > 0 ? { correlationId: { notIn: correlationIds } } : {}),
       },
       select: { entryType: true, account: true, amountPaise: true },
     }),
-    prisma.holdingLot.count({ where: { quantityRemaining: { gt: 0 } } }),
+    prisma.holdingLot.count({ where: { quantityRemaining: { gt: 0 }, ...notDemoUser } }),
     prisma.$queryRaw<[{ ggr: bigint }]>`
       SELECT COALESCE(SUM(ABS(t."unitPaise" - q."midPaise") * t.quantity), 0)::bigint AS ggr
       FROM "Trade" t
       JOIN "Quote" q ON q.id = t."quoteId"
       WHERE t."createdAt" >= ${span.start} AND t."createdAt" < ${span.end}
+        AND (${demoId}::text IS NULL OR t."userId" <> ${demoId})
     `,
-    prisma.trade.findMany({ where: { createdAt: inSpan(span) }, distinct: ["userId"], select: { userId: true } }),
+    prisma.trade.findMany({ where: { createdAt: inSpan(span), ...notDemoUser }, distinct: ["userId"], select: { userId: true } }),
     prisma.$queryRaw<[{ count: bigint }]>`
       SELECT COUNT(*)::bigint AS count FROM (
         SELECT "userId", MIN("settledAt") AS first_at
         FROM "Payment"
         WHERE kind = 'DEPOSIT' AND status = 'SETTLED' AND "settledAt" IS NOT NULL
+          AND (${demoId}::text IS NULL OR "userId" <> ${demoId})
         GROUP BY "userId"
       ) firsts
       WHERE first_at >= ${span.start} AND first_at < ${span.end}
     `,
     prisma.$queryRaw<[{ count: bigint }]>`
       SELECT COUNT(*)::bigint AS count FROM (
-        SELECT "userId", MIN("createdAt") AS first_at FROM "Trade" GROUP BY "userId"
+        SELECT "userId", MIN("createdAt") AS first_at FROM "Trade"
+        WHERE (${demoId}::text IS NULL OR "userId" <> ${demoId})
+        GROUP BY "userId"
       ) firsts
       WHERE first_at >= ${span.start} AND first_at < ${span.end}
     `,
-    prisma.user.count({ where: { role: "CUSTOMER", createdAt: inSpan(span) } }),
+    prisma.user.count({ where: { role: "CUSTOMER", createdAt: inSpan(span), NOT: { email: INVESTOR_DEMO_EMAIL } } }),
     prisma.$queryRaw<[{ count: bigint }]>`
       SELECT COUNT(*)::bigint AS count FROM (
         SELECT "userId" FROM "Trade" WHERE "createdAt" >= ${span.start} AND "createdAt" < ${span.end}
+          AND (${demoId}::text IS NULL OR "userId" <> ${demoId})
         UNION
         SELECT "userId" FROM "Payment" WHERE status = 'SETTLED' AND "settledAt" >= ${span.start} AND "settledAt" < ${span.end}
+          AND (${demoId}::text IS NULL OR "userId" <> ${demoId})
       ) people
     `,
   ]);

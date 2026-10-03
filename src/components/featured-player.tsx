@@ -55,14 +55,14 @@ export function FeaturedPlayerHero({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <h2 className="text-xl font-bold">
+              <h2 className="wrap-anywhere text-[clamp(1.05rem,4.6vw,1.25rem)] font-bold leading-tight">
                 <Link href={profile}>{player.name}</Link>
               </h2>
               <p className="text-xs text-muted">{player.reason ?? "Player price"}</p>
             </div>
             <LiveDot live={player.live} playerId={player.id} />
           </div>
-          <p className="num text-3xl font-bold">
+          <p className="num wrap-anywhere text-[clamp(1.5rem,7vw,1.875rem)] font-bold">
             <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
           </p>
           <p className="text-sm">
@@ -72,10 +72,10 @@ export function FeaturedPlayerHero({
         </div>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <Link href={buy} className="flex min-h-12 items-center justify-center rounded-xl bg-gain font-bold text-pitch">
+        <Link href={buy} className="btn-primary w-full">
           BUY
         </Link>
-        <Link href={sell} className="flex min-h-12 items-center justify-center rounded-xl bg-loss font-bold text-white">
+        <Link href={sell} className="btn-sell w-full">
           SELL
         </Link>
       </div>

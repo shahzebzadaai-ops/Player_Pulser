@@ -42,7 +42,7 @@ export default async function PlayerPage({
 
   return (
     <main className="px-4 pt-4">
-      <header className="flex items-center justify-between">
+      <header className="flex min-w-0 flex-wrap items-center justify-between gap-2">
         <Link href="/market" className="flex h-11 w-11 items-center justify-center rounded-full bg-card" aria-label="Back to market">
           ←
         </Link>
@@ -54,7 +54,7 @@ export default async function PlayerPage({
           <Portrait name={player.name} seed={player.slug} className="h-40 w-32" />
           <div className="min-w-0 flex-1 rounded-2xl bg-pitch/70 p-3">
             <p className="text-xs text-muted">Player price</p>
-            <p className="num text-3xl font-bold">
+            <p className="num wrap-anywhere text-[clamp(1.5rem,8vw,1.875rem)] font-bold leading-tight">
               <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
             </p>
             <p className={`text-sm ${up ? "text-gain" : "text-loss"}`}>
@@ -63,7 +63,7 @@ export default async function PlayerPage({
             <p className="text-xs text-muted">{up ? "Higher across the recent window" : "Lower across the recent window"} · Simulated inputs</p>
           </div>
         </div>
-        <h1 className="mt-3 text-3xl font-bold uppercase leading-none">{player.name}</h1>
+        <h1 className="wrap-anywhere mt-3 text-[clamp(1.45rem,7vw,1.875rem)] font-bold uppercase leading-tight">{player.name}</h1>
         <p className="mt-1 text-xs text-muted">
           INDIA · {roleLabel(player.role).toUpperCase()}
           {player.jerseyNumber ? ` · #${player.jerseyNumber}` : ""}
@@ -72,7 +72,7 @@ export default async function PlayerPage({
           <WatchButton playerId={player.id} initial={Boolean(watch)} />
         </div>
       </section>
-      <dl className="mt-3 grid grid-cols-4 gap-2 text-center text-[11px]">
+      <dl className="mt-3 grid grid-cols-2 gap-2 text-center text-[11px]">
         <Stat label="24h High" value={formatPaise(player.highPaise)} />
         <Stat label="24h Low" value={formatPaise(player.lowPaise)} />
         <Stat label="24h Change" value={<PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />} />
@@ -124,14 +124,14 @@ export default async function PlayerPage({
       <section className="mt-4 rounded-3xl bg-card p-4">
         <h2 className="font-semibold">Recent events</h2>
         <p className="text-xs text-muted">Latest feed event, when a live match is publishing one.</p>
-        <p className="mt-2 text-sm" data-live-event={player.id}>{events[0]?.summary ?? ""}</p>
+        <p className="wrap-anywhere mt-2 text-sm" data-live-event={player.id}>{events[0]?.summary ?? ""}</p>
         {events.length === 0 ? <p className="mt-3 text-sm text-muted">No simulated events yet.</p> : null}
         <ul className="mt-3 space-y-3 text-sm">
           {events.map((event) => (
             <li key={event.id} className="flex gap-3">
               <span className="w-10 shrink-0 text-xs text-muted">{event.overLabel}</span>
               <span className="w-8 shrink-0 font-bold text-india">{event.kind}</span>
-              <span>{event.summary}</span>
+              <span className="wrap-anywhere min-w-0">{event.summary}</span>
             </li>
           ))}
         </ul>
@@ -155,7 +155,7 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="rounded-2xl bg-card p-2">
       <dt className="text-muted">{label}</dt>
-      <dd className="num mt-1 font-semibold">{value}</dd>
+      <dd className="num wrap-anywhere mt-1 font-semibold">{value}</dd>
     </div>
   );
 }

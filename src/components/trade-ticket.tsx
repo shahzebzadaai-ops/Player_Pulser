@@ -184,17 +184,17 @@ export function TradeTicket({
       {confirm ? (
         <div className="relative z-30 mt-3 rounded-2xl bg-pitch p-3 text-sm" role="alert">
           <p>The price moved from {formatPaise(confirm.seen)} to {formatPaise(confirm.current)}.</p>
-          <button type="button" className="mt-2 min-h-11 rounded-xl bg-india px-4 font-semibold" onClick={() => submit(side, true)}>
+          <button type="button" className="btn-primary mt-2 w-full" onClick={() => submit(side, true)}>
             Confirm new price
           </button>
         </div>
       ) : null}
-      <div className="sticky bottom-24 z-30 mt-4 grid grid-cols-2 gap-3">
-        <button type="button" disabled={blocked} onClick={() => void submit("BUY", false)} className="min-h-12 rounded-2xl bg-gain font-bold text-pitch disabled:opacity-40">
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <button type="button" disabled={blocked} onClick={() => void submit("BUY", false)} className="btn-primary w-full flex-col">
           BUY
           <span className="block text-xs font-medium">@ {formatPaise(buy)}</span>
         </button>
-        <button type="button" disabled={stale || offline || pending || holdings < quantity} onClick={() => void submit("SELL", false)} className="min-h-12 rounded-2xl bg-loss font-bold text-white disabled:opacity-40">
+        <button type="button" disabled={stale || offline || pending || holdings < quantity} onClick={() => void submit("SELL", false)} className="btn-sell w-full flex-col">
           SELL
           <span className="block text-xs font-medium">@ {formatPaise(sell)}</span>
         </button>

@@ -23,17 +23,59 @@ export function LogoutButton() {
   );
 }
 
-export function AppFrame({ children }: { children: React.ReactNode }) {
+export function AppFrame({ children, demo = false }: { children: React.ReactNode; demo?: boolean }) {
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-[430px] pb-28">
-      <div className="flex items-center justify-end gap-3 px-4 pt-3">
+    <div className="mx-auto min-h-dvh w-full max-w-[430px] pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-1 px-4 pt-3">
         <ShowcaseMark />
         <StreamStatus />
       </div>
+      {demo ? <DemoSessionBar /> : null}
       <ConnectionState />
       {children}
       <BottomNav />
     </div>
+  );
+}
+
+function DemoSessionBar() {
+  const router = useRouter();
+  const [pending, setPending] = useState<null | "reset" | "exit">(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function reset() {
+    setPending("reset");
+    setMessage(null);
+    const response = await fetch("/api/auth/demo/reset", { method: "POST" });
+    setPending(null);
+    if (!response.ok) {
+      setMessage("The demo could not be reset.");
+      return;
+    }
+    router.refresh();
+  }
+
+  async function exit() {
+    setPending("exit");
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/");
+    router.refresh();
+  }
+
+  return (
+    <section className="mx-4 mt-3 rounded-2xl border border-india/50 bg-[#102848] p-3" aria-label="Investor demo">
+      <p className="text-xs font-semibold tracking-wide text-india">INVESTOR DEMO</p>
+      <p className="mt-1 text-sm">Demo mode. All money and trades are simulated and stay on this demo account.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" className="btn-secondary text-sm" disabled={pending !== null} onClick={() => void reset()}>
+          {pending === "reset" ? "Resetting" : "Reset Demo"}
+        </button>
+        <button type="button" className="btn-secondary text-sm" disabled={pending !== null} onClick={() => void exit()}>
+          {pending === "exit" ? "Leaving" : "Exit Demo"}
+        </button>
+      </div>
+      {message ? <p role="alert" className="mt-2 text-sm text-loss">{message}</p> : null}
+    </section>
   );
 }
 

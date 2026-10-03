@@ -80,8 +80,8 @@ export function DepositFlow({ cashPaise, bonusPaise }: { cashPaise: string; bonu
         <h2 className="text-2xl font-bold">Deposit successful</h2>
         <p className="mt-2 text-sm">{formatPaise(added ?? "0")} added to your Cash Wallet</p>
         <div className="mt-4 grid gap-2">
-          <Link href="/market" className="flex min-h-12 items-center justify-center rounded-full bg-india font-semibold">TRADE NOW</Link>
-          <Link href="/wallet" className="flex min-h-12 items-center justify-center rounded-full border border-line">VIEW WALLET</Link>
+          <Link href="/market" className="btn-primary w-full">TRADE NOW</Link>
+          <Link href="/wallet" className="btn-secondary w-full">VIEW WALLET</Link>
         </div>
       </section>
     );
@@ -94,7 +94,7 @@ export function DepositFlow({ cashPaise, bonusPaise }: { cashPaise: string; bonu
         <p className="mt-2 text-sm text-muted">Status: VERIFYING</p>
         <p className="mt-2 text-sm text-muted">You can leave this page. Confirmation continues on the server.</p>
         {paymentId ? (
-          <button type="button" className="mt-4 min-h-12 w-full rounded-full border border-line" onClick={() => confirm(paymentId)}>
+          <button type="button" className="btn-secondary mt-4 w-full" onClick={() => confirm(paymentId)}>
             Check again
           </button>
         ) : null}
@@ -106,7 +106,7 @@ export function DepositFlow({ cashPaise, bonusPaise }: { cashPaise: string; bonu
     return (
       <section className="mt-4 rounded-3xl border border-line bg-card p-4">
         <h2 className="text-xl font-bold">{message ?? "FAILED"}</h2>
-        <button type="button" className="mt-4 min-h-12 w-full rounded-full bg-india font-semibold" onClick={() => { setStage("amount"); setPaymentId(null); }}>
+        <button type="button" className="btn-primary mt-4 w-full" onClick={() => { setStage("amount"); setPaymentId(null); }}>
           TRY AGAIN
         </button>
       </section>
@@ -141,7 +141,7 @@ export function DepositFlow({ cashPaise, bonusPaise }: { cashPaise: string; bonu
               <input className="mt-1 min-h-12 w-full rounded-2xl border border-line bg-pitch px-3" inputMode="decimal" value={custom} onChange={(event) => setCustom(event.target.value)} />
             </label>
           ) : null}
-          <button type="button" className="col-span-2 min-h-12 rounded-full bg-india font-semibold" disabled={!selected} onClick={() => setStage("method")}>
+          <button type="button" className="btn-primary col-span-2 w-full" disabled={!selected} onClick={() => setStage("method")}>
             CONTINUE TO PAYMENT
           </button>
         </section>
@@ -154,7 +154,7 @@ export function DepositFlow({ cashPaise, bonusPaise }: { cashPaise: string; bonu
             CRYPTO
           </button>
           <p className="text-xs text-muted">We use security controls to protect your account and personal information.</p>
-          <button type="button" className="min-h-12 w-full rounded-full bg-india font-semibold" disabled={!category} onClick={pay}>
+          <button type="button" className="btn-primary w-full" disabled={!category} onClick={pay}>
             Pay {selected ? `₹${selected}` : ""}
           </button>
         </section>

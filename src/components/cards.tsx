@@ -11,9 +11,9 @@ export function LiveCard({ player, className = "w-[178px] shrink-0" }: { player:
         <Portrait name={player.name} seed={player.slug} className="h-20 w-16" />
         <LiveDot live={player.live} />
       </div>
-      <h3 className="mt-2 truncate text-sm font-semibold">{player.name}</h3>
+      <h3 className="wrap-anywhere mt-2 text-sm font-semibold">{player.name}</h3>
       {player.pulse ? (
-        <p className="mt-1 flex items-center gap-1 text-[11px] text-muted">
+        <p className="mt-1 flex min-w-0 flex-wrap items-center gap-1 text-[11px] text-muted">
           <PulseStar playerId={player.id} state={player.pulse.state} />
           <span className="sr-only">Market Pulse</span>
           <span className="truncate">{player.pulse.activity}</span>
@@ -28,10 +28,10 @@ export function LiveCard({ player, className = "w-[178px] shrink-0" }: { player:
       </p>
       <Sparkline playerId={player.id} values={player.history} positive={up} />
       <div className="mt-2 grid grid-cols-2 gap-1.5">
-        <Link href={`/players/${player.slug}?side=buy#trade`} className="press flex min-h-11 items-center justify-center rounded-lg bg-gain text-xs font-bold text-pitch">
+        <Link href={`/players/${player.slug}?side=buy#trade`} className="btn-primary press w-full text-xs">
           BUY
         </Link>
-        <Link href={`/players/${player.slug}?side=sell#trade`} className="press flex min-h-11 items-center justify-center rounded-lg bg-loss text-xs font-bold text-white">
+        <Link href={`/players/${player.slug}?side=sell#trade`} className="btn-sell press w-full text-xs">
           SELL
         </Link>
       </div>
@@ -44,7 +44,7 @@ export function MoverCard({ player }: { player: PlayerView }) {
   return (
     <Link href={`/players/${player.slug}`} className="w-[148px] shrink-0 rounded-2xl border border-line bg-card p-3">
       <Portrait name={player.name} alt={player.name} seed={player.slug} className="h-16 w-14" />
-      <p className="mt-2 truncate text-sm font-semibold">{player.shortName}</p>
+      <p className="wrap-anywhere mt-2 text-sm font-semibold">{player.shortName}</p>
       <p className="num text-sm font-semibold">
         <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
       </p>
