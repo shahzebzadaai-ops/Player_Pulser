@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { useId } from "react";
+import { CUSTOMER_LOGO_HREF } from "@/domain/auth-flags";
 import { playerArtworkAlt, playerArtworkSrc } from "@/domain/player-artwork";
 import { PlayerArt } from "./player-art";
 
@@ -11,8 +13,8 @@ export function roleLabel(role: string): string {
   return "Batter";
 }
 
-export function Logo({ wordmark = true }: { wordmark?: boolean }) {
-  return (
+export function Logo({ wordmark = true, href = CUSTOMER_LOGO_HREF }: { wordmark?: boolean; href?: string | null }) {
+  const mark = (
     <span className="inline-flex items-center gap-2 text-[15px] font-semibold tracking-tight">
       <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0" aria-hidden>
         <rect width="32" height="32" rx="9" fill="#2f7bff" />
@@ -25,6 +27,12 @@ export function Logo({ wordmark = true }: { wordmark?: boolean }) {
         </span>
       ) : null}
     </span>
+  );
+  if (!href) return mark;
+  return (
+    <Link href={href} aria-label="PlayerPulser home">
+      {mark}
+    </Link>
   );
 }
 

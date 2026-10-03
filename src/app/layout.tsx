@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import { Suspense } from "react";
 import { AttributionBeacon } from "@/components/attribution-beacon";
+import { AuthOverlay } from "@/components/auth-overlay";
+import { authFlags } from "@/domain/auth-flags";
 import { PwaRegister } from "@/components/chrome";
 import { PriceStreamProvider } from "@/components/price-stream";
 import "./globals.css";
@@ -33,7 +35,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Suspense fallback={null}>
           <AttributionBeacon />
         </Suspense>
-        <PriceStreamProvider>{children}</PriceStreamProvider>
+        <PriceStreamProvider>
+          {children}
+          <Suspense fallback={null}>
+            <AuthOverlay flags={authFlags()} />
+          </Suspense>
+        </PriceStreamProvider>
       </body>
     </html>
   );

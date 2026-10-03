@@ -20,6 +20,22 @@ export const ANALYTICS_EVENTS = [
   "WITHDRAWAL_SUCCESS",
   "REFERRAL_CREATED",
   "REFERRAL_QUALIFIED",
+  "signup_prompt_shown",
+  "signup_started",
+  "auth_google_selected",
+  "auth_phone_selected",
+  "auth_email_selected",
+  "otp_requested",
+  "otp_verified",
+  "otp_failed",
+  "signup_completed",
+  "phone_verified",
+  "email_verified",
+  "profile_completed",
+  "buy_intent_created",
+  "buy_intent_resumed",
+  "deposit_intent_created",
+  "deposit_intent_resumed",
 ] as const;
 
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];

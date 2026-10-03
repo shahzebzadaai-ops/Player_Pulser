@@ -18,6 +18,8 @@ export const SIGNUP_PROMPT_DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
 export const LIFECYCLE_STAGES = [
   "VISITOR",
   "REGISTERED",
+  "CONTACT_VERIFIED",
+  "NO_DEPOSIT",
   "BONUS_RECEIVED",
   "DEPOSIT_PENDING",
   "FIRST_DEPOSITOR",
@@ -25,6 +27,9 @@ export const LIFECYCLE_STAGES = [
   "ACTIVE",
   "COOLING",
   "CHURN_RISK",
+  "DORMANT",
+  "REACTIVATED",
+  "RESTRICTED",
 ] as const;
 export type LifecycleStage = (typeof LIFECYCLE_STAGES)[number];
 
@@ -77,8 +82,16 @@ export function lifecycleStage(input: {
   traded: boolean;
   cooling: boolean;
   churnRisk: boolean;
+  restricted?: boolean;
+  dormant?: boolean;
+  reactivated?: boolean;
+  contactVerified?: boolean;
+  noDeposit?: boolean;
 }): LifecycleStage {
+  if (input.restricted) return "RESTRICTED";
   if (!input.registered) return "VISITOR";
+  if (input.reactivated) return "REACTIVATED";
+  if (input.dormant) return "DORMANT";
   if (input.churnRisk) return "CHURN_RISK";
   if (input.cooling) return "COOLING";
   if (input.traded && input.deposited) return "ACTIVE";
@@ -86,6 +99,8 @@ export function lifecycleStage(input: {
   if (input.traded && !input.deposited) return "FIRST_TRADER";
   if (input.depositPending) return "DEPOSIT_PENDING";
   if (input.bonusReceived) return "BONUS_RECEIVED";
+  if (input.noDeposit) return "NO_DEPOSIT";
+  if (input.contactVerified) return "CONTACT_VERIFIED";
   return "REGISTERED";
 }
 
@@ -93,7 +108,8 @@ export function customerCta(stage: LifecycleStage): "signup" | "deposit" | "trad
   if (stage === "VISITOR") return "signup";
   if (stage === "REGISTERED" || stage === "BONUS_RECEIVED" || stage === "DEPOSIT_PENDING") return "deposit";
   if (stage === "FIRST_DEPOSITOR") return "trade";
-  if (stage === "ACTIVE" || stage === "FIRST_TRADER" || stage === "COOLING" || stage === "CHURN_RISK") return "portfolio";
+  if (stage === "CONTACT_VERIFIED" || stage === "NO_DEPOSIT") return "deposit";
+  if (stage === "ACTIVE" || stage === "FIRST_TRADER" || stage === "COOLING" || stage === "CHURN_RISK" || stage === "DORMANT" || stage === "REACTIVATED") return "portfolio";
   return null;
 }
 

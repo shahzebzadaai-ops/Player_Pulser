@@ -12,6 +12,34 @@ enum UserRole {
   ADMIN
 }
 
+enum AccountStatus {
+  REGISTERED
+  CONTACT_VERIFIED
+  PROFILE_COMPLETE
+  VERIFICATION_REQUIRED
+  VERIFIED
+  RESTRICTED
+}
+
+enum SignupMethod {
+  GOOGLE
+  PHONE
+  EMAIL
+  PASSWORD
+}
+
+enum AuthProvider {
+  GOOGLE
+  PHONE
+  EMAIL
+  PASSKEY
+}
+
+enum OtpChannel {
+  PHONE
+  EMAIL
+}
+
 enum PlayerRole {
   BATTER
   BOWLER
@@ -65,15 +93,36 @@ enum PaymentStatus {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  phone        String?   @unique
-  email        String?   @unique
-  displayName  String
-  passwordHash String?
-  role         UserRole  @default(CUSTOMER)
-  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
-  sessions     Session[]
+  id                      String         @id @default(cuid())
+  phone                   String?        @unique
+  email                   String?        @unique
+  displayName             String
+  givenName               String?
+  familyName              String?
+  username                String?
+  usernameNormalized      String?        @unique
+  usernameCustomized      Boolean        @default(false)
+  avatarUrl               String?
+  passwordHash            String?
+  role                    UserRole       @default(CUSTOMER)
+  accountStatus           AccountStatus  @default(REGISTERED)
+  signupMethod            SignupMethod?
+  emailVerifiedAt         DateTime?      @db.Timestamptz(3)
+  phoneVerifiedAt         DateTime?      @db.Timestamptz(3)
+  lastLoginAt             DateTime?      @db.Timestamptz(3)
+  marketingConsent        Boolean        @default(false)
+  marketingConsentAt      DateTime?      @db.Timestamptz(3)
+  marketingConsentSource  String?
+  marketingConsentVersion String?
+  doNotEmail              Boolean        @default(false)
+  doNotSms                Boolean        @default(false)
+  doNotWhatsApp           Boolean        @default(false)
+  doNotCall               Boolean        @default(false)
+  createdAt               DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime       @updatedAt @db.Timestamptz(3)
+  sessions                Session[]
+  identities              AuthIdentity[]
+  passkeys                PasskeyCredential[]
   ledger       LedgerEntry[]
   trades       Trade[]
   lots         HoldingLot[]
@@ -105,15 +154,49 @@ model Session {
 }
 
 model OtpChallenge {
-  id         String    @id @default(cuid())
-  phone      String
+  id         String     @id @default(cuid())
+  channel    OtpChannel @default(PHONE)
+  phone      String?
+  email      String?
   codeHash   String
-  expiresAt  DateTime  @db.Timestamptz(3)
-  consumedAt DateTime? @db.Timestamptz(3)
-  attempts   Int       @default(0)
-  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  expiresAt  DateTime   @db.Timestamptz(3)
+  consumedAt DateTime?  @db.Timestamptz(3)
+  attempts   Int        @default(0)
+  createdAt  DateTime   @default(now()) @db.Timestamptz(3)
 
   @@index([phone, createdAt])
+  @@index([email, createdAt])
+}
+
+model AuthIdentity {
+  id                String       @id @default(cuid())
+  userId            String
+  provider          AuthProvider
+  providerAccountId String
+  normalizedPhone   String?
+  normalizedEmail   String?
+  verifiedAt        DateTime?    @db.Timestamptz(3)
+  createdAt         DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime     @updatedAt @db.Timestamptz(3)
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@unique([normalizedPhone])
+  @@unique([normalizedEmail])
+  @@index([userId])
+}
+
+model PasskeyCredential {
+  id           String   @id @default(cuid())
+  userId       String
+  credentialId String   @unique
+  publicKey    Bytes
+  counter      BigInt   @default(0)
+  transports   String?
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Player {

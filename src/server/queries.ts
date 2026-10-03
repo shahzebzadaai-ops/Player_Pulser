@@ -46,13 +46,13 @@ function whyFromTick(tick: { source: string; reason: string | null; performance:
   const demand = tick?.demand ?? 0;
   const news = tick?.news ?? 0;
   const lines: string[] = [];
-  if (performance > 0.35) lines.push("Recent simulated performances are lifting demand.");
-  if (performance < -0.35) lines.push("A weak simulated performance is cooling the price.");
-  if (demand > 0.35) lines.push("Buying interest is ahead of selling interest in the simulation.");
-  if (demand < -0.35) lines.push("Selling interest is ahead in the simulation.");
-  if (news > 0.35) lines.push("Simulated news input is positive.");
-  if (news < -0.35) lines.push("Simulated news input is negative.");
-  if (lines.length === 0) lines.push("No strong simulated input. The price is drifting inside the cap.");
+  if (performance > 0.35) lines.push("Recent form is lifting demand.");
+  if (performance < -0.35) lines.push("Recent form is cooling the price.");
+  if (demand > 0.35) lines.push("Buying interest is ahead of selling interest.");
+  if (demand < -0.35) lines.push("Selling interest is ahead of buying interest.");
+  if (news > 0.35) lines.push("Match news is supportive.");
+  if (news < -0.35) lines.push("Match news is weighing on the price.");
+  if (lines.length === 0) lines.push("Price is steady in the current window.");
   return lines;
 }
 

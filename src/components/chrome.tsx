@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { CUSTOMER_NAV } from "@/domain/customer-nav";
 import { ShowcaseMark, StreamStatus } from "./price-stream";
 
 export function LogoutButton() {
@@ -23,9 +24,9 @@ export function LogoutButton() {
   );
 }
 
-export function AppFrame({ children, demo = false }: { children: React.ReactNode; demo?: boolean }) {
+export function AppFrame({ children, demo = false, settingsAttention = false }: { children: React.ReactNode; demo?: boolean; settingsAttention?: boolean }) {
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-[430px] pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
+    <div className="mx-auto min-h-dvh w-full max-w-[430px] overflow-x-hidden pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
       <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-1 px-4 pt-3">
         <ShowcaseMark />
         <StreamStatus />
@@ -33,7 +34,7 @@ export function AppFrame({ children, demo = false }: { children: React.ReactNode
       {demo ? <DemoSessionBar /> : null}
       <ConnectionState />
       {children}
-      <BottomNav />
+      <BottomNav settingsAttention={settingsAttention} />
     </div>
   );
 }
@@ -114,9 +115,10 @@ function subscribeBonusBanner(onStoreChange: () => void) {
   return () => window.removeEventListener("pp-bonus-banner", onStoreChange);
 }
 
-export function WelcomeBanner() {
+export function WelcomeBanner({ status }: { status: string }) {
   const open = useSyncExternalStore(subscribeBonusBanner, bonusBannerOpen, () => false);
-  if (!open) return null;
+  if (!open || (status !== "ACTIVE" && status !== "PENDING_REVIEW")) return null;
+  const active = status === "ACTIVE";
   return (
     <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#16448f] via-[#12366f] to-[#0c2348] p-4">
       <button
@@ -131,37 +133,40 @@ export function WelcomeBanner() {
         ×
       </button>
       <p className="text-2xl font-bold text-gold">
-        ₹200 <span className="text-lg text-ink">Welcome Bonus Active</span>
+        ₹200 <span className="text-lg text-ink">{active ? "Welcome Bonus Active" : "Welcome bonus under review"}</span>
       </p>
-      <p className="mt-1 max-w-[15rem] text-sm text-muted">Use your bonus to start trading Indian players now.</p>
+      <p className="mt-1 max-w-[15rem] text-sm text-muted">{active ? "Use your bonus to start trading Indian players now." : "This account shares a device with an existing bonus, so the new bonus is not available yet."}</p>
     </section>
   );
 }
 
-const NAV = [
-  { href: "/home", label: "Home", icon: HomeIcon },
-  { href: "/market", label: "Markets", icon: ChartIcon },
-  { href: "/portfolio", label: "Portfolio", icon: BagIcon },
-  { href: "/rewards", label: "Rewards", icon: GiftIcon },
-  { href: "/wallet", label: "Wallet", icon: WalletIcon },
-];
+const NAV_ICONS = {
+  "/home": HomeIcon,
+  "/market": ChartIcon,
+  "/portfolio": BagIcon,
+  "/wallet": WalletIcon,
+  "/settings": SettingsIcon,
+} as const;
 
-export function BottomNav() {
+export function BottomNav({ settingsAttention = false }: { settingsAttention?: boolean }) {
   const pathname = usePathname();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line/80 bg-[#081422]/95 backdrop-blur" aria-label="Primary">
-      <ul className="mx-auto flex max-w-[430px] justify-between px-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] pt-2">
-        {NAV.map((item) => {
+      <ul className="mx-auto grid max-w-[430px] grid-cols-5 overflow-x-hidden px-1 pb-[max(0.4rem,env(safe-area-inset-bottom))] pt-2">
+        {CUSTOMER_NAV.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          const Icon = item.icon;
+          const Icon = NAV_ICONS[item.href];
           return (
-            <li key={item.href} className="flex-1">
+            <li key={item.href} className="min-w-0">
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`press flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-[11px] ${active ? "text-india" : "text-muted"}`}
+                className={`press flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-[10px] whitespace-nowrap ${active ? "text-india" : "text-muted"}`}
               >
-                <Icon />
+                <span className="relative">
+                  <Icon />
+                  {item.href === "/settings" && settingsAttention ? <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-india" /> : null}
+                </span>
                 {item.label}
               </Link>
             </li>
@@ -193,10 +198,11 @@ function BagIcon() {
     </svg>
   );
 }
-function GiftIcon() {
+function SettingsIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-      <path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-2 0-3.5-2-2.2-3.2C11 2.6 12 5 12 7zm0 0c2 0 3.5-2 2.2-3.2C13 2.6 12 5 12 7z" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.3.7.9 1.1 1.6 1.1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
     </svg>
   );
 }

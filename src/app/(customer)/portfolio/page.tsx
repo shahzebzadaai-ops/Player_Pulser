@@ -2,14 +2,13 @@ import Link from "next/link";
 import { LivePortfolioTotals, LivePositionValue } from "@/components/price-display";
 import { LiveDot, Portrait, PriceText, Sparkline } from "@/components/visuals";
 import { formatPaise } from "@/domain/money";
-import { getCurrentUser } from "@/server/current-user";
+import { requireCustomer } from "@/server/page-access";
 import { portfolio } from "@/server/queries";
 
 export const metadata = { title: "Portfolio" };
 
 export default async function PortfolioPage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireCustomer({ type: "PORTFOLIO" });
   const book = await portfolio(user.id);
   return (
     <main className="px-4 pt-4">

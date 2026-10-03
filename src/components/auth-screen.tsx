@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "./visuals";
 
-export function AuthScreen({ mode, devAuth }: { mode: "login" | "signup"; devAuth: boolean }) {
+export function AuthScreen({ mode, devAuth, embedded = false }: { mode: "login" | "signup"; devAuth: boolean; embedded?: boolean }) {
   const router = useRouter();
   const [tab, setTab] = useState<"phone" | "email">("phone");
   const [phone, setPhone] = useState("");
@@ -53,7 +53,7 @@ export function AuthScreen({ mode, devAuth }: { mode: "login" | "signup"; devAut
       setDone({ bonusStatus: body.bonusStatus ?? null });
       return;
     }
-    router.push("/home");
+    router.push("/continue");
     router.refresh();
   }
 
@@ -67,7 +67,7 @@ export function AuthScreen({ mode, devAuth }: { mode: "login" | "signup"; devAut
       setMessage("Development login is not available.");
       return;
     }
-    router.push("/home");
+    router.push("/continue");
     router.refresh();
   }
 
@@ -102,16 +102,17 @@ export function AuthScreen({ mode, devAuth }: { mode: "login" | "signup"; devAut
       setDone({ bonusStatus: body.bonusStatus ?? null });
       return;
     }
-    router.push("/home");
+    router.push("/continue");
     router.refresh();
   }
 
+  const Root = embedded ? "section" : "main";
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-[430px] px-4 py-6">
-      <div className="mb-6 flex min-w-0 items-start justify-between gap-3">
+    <Root className={embedded ? "mt-4" : "mx-auto min-h-dvh w-full max-w-[430px] px-4 py-6"}>
+      {embedded ? null : <div className="mb-6 flex min-w-0 items-start justify-between gap-3">
         <Logo />
         <p className="max-w-28 text-right text-[11px] text-muted">India&apos;s first player trading platform</p>
-      </div>
+      </div>}
       {done ? (
         <section className="mt-6 rounded-3xl border border-line bg-card p-5">
           <h1 className="text-3xl font-bold">You&apos;re in.</h1>
@@ -121,7 +122,7 @@ export function AuthScreen({ mode, devAuth }: { mode: "login" | "signup"; devAut
           <Link href="/wallet/deposit" className="btn-primary mt-4 w-full">
             DEPOSIT NOW
           </Link>
-          <Link href="/home" className="btn-secondary mt-2 w-full">
+          <Link href="/continue" className="btn-secondary mt-2 w-full">
             EXPLORE PLAYERS
           </Link>
         </section>
@@ -243,6 +244,6 @@ export function AuthScreen({ mode, devAuth }: { mode: "login" | "signup"; devAut
           </>
         )}
       </p>
-    </main>
+    </Root>
   );
 }

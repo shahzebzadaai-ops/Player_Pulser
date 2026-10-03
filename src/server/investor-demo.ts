@@ -12,6 +12,7 @@ import {
 import { grantWelcomeBonus } from "./bonus";
 import { postJournal, withUserLock } from "./ledger";
 import { prisma } from "./prisma";
+import { assignTemporaryUsername } from "./usernames";
 import { getSettings } from "./settings";
 import { createQuote, executeTrade } from "./trading";
 
@@ -37,7 +38,7 @@ async function ensureDemoUser() {
     }
     return existing;
   }
-  return prisma.user.create({
+  const created = await prisma.user.create({
     data: {
       email: INVESTOR_DEMO_EMAIL,
       displayName: INVESTOR_DEMO_NAME,
@@ -46,8 +47,9 @@ async function ensureDemoUser() {
       phone: null,
     },
   });
+  await assignTemporaryUsername(prisma, created.id);
+  return created;
 }
-
 async function clearDemoActivity(userId: string) {
   await withUserLock(userId, async (tx) => {
     const trades = await tx.trade.findMany({

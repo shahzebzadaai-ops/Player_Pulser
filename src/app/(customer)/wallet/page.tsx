@@ -2,15 +2,14 @@ import { BannerSlot } from "@/components/banner-slot";
 import { WalletPanel } from "@/components/wallet-panel";
 import { isInvestorDemoIdentity } from "@/domain/investor-demo";
 import { formatPaise, formatSignedPaise } from "@/domain/money";
-import { getCurrentUser } from "@/server/current-user";
+import { requireCustomer } from "@/server/page-access";
 import { getFeatures } from "@/server/features";
 import { walletSummary } from "@/server/queries";
 
 export const metadata = { title: "Wallet" };
 
 export default async function WalletPage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireCustomer({ type: "WALLET" });
   const [wallet, features] = await Promise.all([walletSummary(user.id), getFeatures()]);
   return (
     <main className="px-4 pt-4">

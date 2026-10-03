@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ClearIntent } from "@/components/clear-intent";
+import { GuestTrade } from "@/components/guest-trade";
 import { HowPricesWork } from "@/components/how-prices-work";
 import { PriceChart } from "@/components/price-chart";
 import { PulsePanel } from "@/components/pulse-star";
@@ -8,9 +10,12 @@ import { TradeTicket } from "@/components/trade-ticket";
 import { WatchButton } from "@/components/watch-button";
 import { DayRange, LiveSpread } from "@/components/price-display";
 import { LiveDot, Logo, Portrait, PriceText, roleLabel } from "@/components/visuals";
+import { priceUpdateNotice } from "@/domain/indicative-price";
 import { formatPaise } from "@/domain/money";
+import { recordEvent } from "@/server/attribution";
 import { getCurrentUser } from "@/server/current-user";
 import { getFeatures } from "@/server/features";
+import { currentIntent } from "@/server/intent-cookie";
 import { prisma } from "@/server/prisma";
 import { eventsForPlayer, getPlayer, portfolio, priceHistory, walletSummary } from "@/server/queries";
 
@@ -21,23 +26,31 @@ export default async function PlayerPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ side?: string }>;
+  searchParams: Promise<{ side?: string; resume?: string }>;
 }) {
   const { slug } = await params;
   const query = await searchParams;
   const user = await getCurrentUser();
-  if (!user) return null;
   const player = await getPlayer(slug);
   if (!player) notFound();
-  const [wallet, book, events, history, features, watch] = await Promise.all([
-    walletSummary(user.id),
-    portfolio(user.id),
+  const [events, history, features] = await Promise.all([
     eventsForPlayer(player.id),
     priceHistory(player.id, "24H"),
     getFeatures(),
-    prisma.playerWatch.findUnique({ where: { userId_playerId: { userId: user.id, playerId: player.id } }, select: { id: true } }),
   ]);
-  const holding = book.positions.find((position) => position.playerId === player.id);
+  const wallet = user ? await walletSummary(user.id) : null;
+  const book = user ? await portfolio(user.id) : null;
+  const watch = user
+    ? await prisma.playerWatch.findUnique({ where: { userId_playerId: { userId: user.id, playerId: player.id } }, select: { id: true } })
+    : null;
+  const holding = book?.positions.find((position) => position.playerId === player.id);
+  const intent = user && query.resume === "1" ? await currentIntent() : null;
+  const resume = intent?.type === "BUY" && intent.slug === player.slug ? intent : null;
+  const currentPrice = resume?.side === "SELL" ? player.sellPaise : player.buyPaise;
+  const priceNotice = resume ? priceUpdateNotice(resume.displayedIndicativePrice, currentPrice) : null;
+  if (resume && user) {
+    await recordEvent({ eventName: "buy_intent_resumed", dedupeKey: `buy-resume:${user.id}:${player.id}:${resume.displayedIndicativePrice}`, userId: user.id });
+  }
   const up = Number(player.changePaise) >= 0;
 
   return (
@@ -68,9 +81,11 @@ export default async function PlayerPage({
           INDIA · {roleLabel(player.role).toUpperCase()}
           {player.jerseyNumber ? ` · #${player.jerseyNumber}` : ""}
         </p>
-        <div className="mt-3">
-          <WatchButton playerId={player.id} initial={Boolean(watch)} />
-        </div>
+        {user ? (
+          <div className="mt-3">
+            <WatchButton playerId={player.id} initial={Boolean(watch)} />
+          </div>
+        ) : null}
       </section>
       <dl className="mt-3 grid grid-cols-2 gap-2 text-center text-[11px]">
         <Stat label="24h High" value={formatPaise(player.highPaise)} />
@@ -98,13 +113,15 @@ export default async function PlayerPage({
         <Stat label="Buy price" value={<PriceText playerId={player.id} field="buy" paise={player.buyPaise} />} />
         <Stat label="Sell price" value={<PriceText playerId={player.id} field="sell" paise={player.sellPaise} />} />
         <Stat label="Current spread" value={<LiveSpread playerId={player.id} buyPaise={player.buyPaise} sellPaise={player.sellPaise} />} />
-        <Stat label="Your cash" value={formatPaise(wallet.cashPaise)} />
-        <Stat label="Your bonus" value={formatPaise(wallet.bonusPaise)} />
-        <Stat label="You hold" value={`${holding?.quantity ?? 0} Pulsers`} />
+        {wallet ? <Stat label="Your cash" value={formatPaise(wallet.cashPaise)} /> : null}
+        {wallet ? <Stat label="Your bonus" value={formatPaise(wallet.bonusPaise)} /> : null}
+        {user ? <Stat label="You hold" value={`${holding?.quantity ?? 0} Pulsers`} /> : null}
       </dl>
       <div className="mt-4">
-        {features.liveTradingEnabled ? (
-        <TradeSheet playerId={player.id} buyPaise={player.buyPaise} sellPaise={player.sellPaise}>
+        {features.liveTradingEnabled && user && wallet ? (
+          <>
+            {resume ? <ClearIntent /> : null}
+            <TradeSheet playerId={player.id} buyPaise={player.buyPaise} sellPaise={player.sellPaise} initialOpen={Boolean(resume)}>
         <TradeTicket
           playerId={player.id}
           initialBuy={player.buyPaise}
@@ -114,9 +131,14 @@ export default async function PlayerPage({
           bonusPaise={wallet.bonusPaise}
           holdings={holding?.quantity ?? 0}
           stale={player.stale}
-          initialSide={query.side === "sell" ? "SELL" : "BUY"}
+          initialSide={resume?.side === "SELL" || query.side === "sell" ? "SELL" : "BUY"}
+          initialQuantity={resume?.quantity}
+          priceNotice={priceNotice}
         />
-        </TradeSheet>
+            </TradeSheet>
+          </>
+        ) : features.liveTradingEnabled ? (
+          <GuestTrade playerId={player.id} slug={player.slug} buyPaise={player.buyPaise} sellPaise={player.sellPaise} />
         ) : (
           <p className="rounded-2xl bg-card p-4 text-sm">Trading is temporarily unavailable.</p>
         )}

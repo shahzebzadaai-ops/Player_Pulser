@@ -1,14 +1,13 @@
 import { BannerSlot } from "@/components/banner-slot";
 import { formatPaise } from "@/domain/money";
-import { getCurrentUser } from "@/server/current-user";
+import { requireCustomer } from "@/server/page-access";
 import { getFeatures } from "@/server/features";
 import { walletSummary } from "@/server/queries";
 
 export const metadata = { title: "Rewards" };
 
 export default async function RewardsPage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireCustomer({ type: "REWARDS" });
   const [wallet, features] = await Promise.all([walletSummary(user.id), getFeatures()]);
   const bonus = wallet.bonus;
   const progress = bonus ? Number(bonus.progressPaise) : 0;

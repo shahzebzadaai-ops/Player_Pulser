@@ -39,5 +39,5 @@ export function playerArtworkAlt(name: string): string {
 }
 
 export function publicPlayerPaths(): string[] {
-  return ARTWORK_SLUGS.map((slug) => `/p/${slug}`);
+  return ARTWORK_SLUGS.map((slug) => `/players/${slug}`);
 }

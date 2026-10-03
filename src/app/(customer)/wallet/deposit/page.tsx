@@ -1,13 +1,12 @@
 import { DepositFlow } from "@/components/deposit-flow";
 import { isInvestorDemoIdentity } from "@/domain/investor-demo";
-import { getCurrentUser } from "@/server/current-user";
+import { requireCustomer } from "@/server/page-access";
 import { walletSummary } from "@/server/queries";
 
 export const metadata = { title: "Deposit", robots: { index: false, follow: false } };
 
 export default async function DepositPage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireCustomer({ type: "DEPOSIT" });
   const wallet = await walletSummary(user.id);
   return (
     <main className="px-4 pb-8 pt-4">

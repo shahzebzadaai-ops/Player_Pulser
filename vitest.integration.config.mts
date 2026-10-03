@@ -26,6 +26,9 @@ export default defineConfig({
     testTimeout: 60000,
   },
   resolve: {
-    alias: { "@": path.resolve(root, "./src") },
+    alias: {
+      "@": path.resolve(root, "./src"),
+      "server-only": path.resolve(root, "./src/test/server-only.ts"),
+    },
   },
 });

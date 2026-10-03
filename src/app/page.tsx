@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { BannerSlot } from "@/components/banner-slot";
-import { SignupPrompt } from "@/components/signup-prompt";
 import { LiveCard, MoverCard } from "@/components/cards";
 import { FeaturedPlayerHero } from "@/components/featured-player";
 import { MarketPulse } from "@/components/price-display";
@@ -30,7 +28,6 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function LandingPage() {
   const user = await getCurrentUser();
-  if (user) redirect("/home");
   let players: PlayerView[] = [];
   let movers: PlayerView[] = [];
   let strip: PlayerView[] = [];
@@ -45,19 +42,19 @@ export default async function LandingPage() {
   }
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-[430px] px-4 pb-44 pt-5">
+    <main id="top" className="mx-auto min-h-dvh w-full max-w-[430px] px-4 pb-44 pt-5">
       <header className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2">
         <Logo />
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
           <ShowcaseMark />
           <StreamStatus />
           {investorDemoEnabled() ? <DemoEntry /> : null}
-          <Link href="/signup" className="btn-primary px-3 text-sm">
-            Sign up
-          </Link>
-          <Link href="/login" className="btn-secondary px-3 text-sm">
-            Log in
-          </Link>
+          {user ? <Link href="/home" className="btn-secondary whitespace-nowrap px-3 text-sm">Your home</Link> : (
+            <>
+              <Link href="/?auth=signup" className="btn-primary whitespace-nowrap px-3 text-sm">Sign up</Link>
+              <Link href="/?auth=login" className="btn-secondary whitespace-nowrap px-3 text-sm">Log in</Link>
+            </>
+          )}
         </div>
       </header>
       <MarketPulse />
@@ -71,7 +68,7 @@ export default async function LandingPage() {
         <div className="mt-4 rounded-2xl bg-black/25 p-3">
           <p className="text-sm font-semibold">₹200 welcome bonus</p>
           <p className="mt-1 text-xs text-muted">Create an account to claim it, then deposit from ₹500 to trade.</p>
-          <Link href="/signup" className="btn-primary mt-3 text-sm">
+          <Link href="/wallet/deposit" className="btn-primary mt-3 text-sm">
             Deposit
           </Link>
         </div>
@@ -83,7 +80,7 @@ export default async function LandingPage() {
       </ul>
       <div className="mt-4">
         {players.length > 0 ? (
-          <FeaturedPlayerHero players={selectFeaturedPlayers(players).map(({ player, reason }) => ({ ...player, reason }))} tradeHref="account" />
+          <FeaturedPlayerHero players={selectFeaturedPlayers(players).map(({ player, reason }) => ({ ...player, reason }))} tradeHref="player" />
         ) : (
           <p className="rounded-2xl bg-card p-4 text-sm text-muted">Prices appear after the local database is seeded.</p>
         )}
@@ -123,9 +120,8 @@ export default async function LandingPage() {
       <Link href="/signup" className="btn-primary mt-6 w-full text-base">
         Start trading players
       </Link>
-      <p className="mt-4 text-center text-xs text-muted">Trusted as a development preview · Made for India · Simulated money</p>
+      <p className="mt-4 text-center text-xs text-muted">Showcase market · Made for India</p>
       <p className="sr-only">{formatPaise("0")}</p>
-      <SignupPrompt />
     </main>
   );
 }

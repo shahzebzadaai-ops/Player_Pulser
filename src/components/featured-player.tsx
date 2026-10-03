@@ -44,9 +44,9 @@ export function FeaturedPlayerHero({
 
   const player = players[index];
   if (!player) return null;
-  const buy = tradeHref === "player" ? `/players/${player.slug}?side=buy#trade` : "/signup";
-  const sell = tradeHref === "player" ? `/players/${player.slug}?side=sell#trade` : "/signup";
-  const profile = tradeHref === "player" ? `/players/${player.slug}` : `/p/${player.slug}`;
+  const buy = tradeHref === "player" ? `/players/${player.slug}?side=buy&auth=signup#trade` : "/?auth=signup";
+  const sell = tradeHref === "player" ? `/players/${player.slug}?side=sell&auth=signup#trade` : "/?auth=signup";
+  const profile = `/players/${player.slug}`;
 
   return (
     <article className={`rounded-3xl border border-line bg-card p-4 ${reduced ? "" : "hero-fade"}`} key={player.id} aria-live="polite">

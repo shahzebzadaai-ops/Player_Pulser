@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { requireCustomer } from "@/server/page-access";
 import { recentEvents } from "@/server/queries";
 
 export const metadata = { title: "Notifications" };
 
 export default async function NotificationsPage() {
+  await requireCustomer({ type: "NOTIFICATIONS" });
   const events = await recentEvents(20);
   return (
     <main className="px-4 pt-4">

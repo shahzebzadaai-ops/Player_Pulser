@@ -16,8 +16,9 @@ describe("player artwork", () => {
 
   it("lists only public player paths", () => {
     const paths = publicPlayerPaths();
-    expect(paths).toContain("/p/virat-kohli");
-    expect(paths).toContain("/p/abhishek-sharma");
+    expect(paths).toContain("/players/virat-kohli");
+    expect(paths).toContain("/players/abhishek-sharma");
+    expect(paths.some((path) => path.startsWith("/p/"))).toBe(false);
     expect(paths.some((path) => path.startsWith("/admin"))).toBe(false);
     expect(paths).toHaveLength(24);
   });

@@ -17,6 +17,8 @@ export function TradeTicket({
   holdings,
   stale,
   initialSide,
+  initialQuantity = 1,
+  priceNotice = null,
 }: {
   playerId: string;
   initialBuy: string;
@@ -27,10 +29,12 @@ export function TradeTicket({
   holdings: number;
   stale: boolean;
   initialSide: Side;
+  initialQuantity?: number;
+  priceNotice?: string | null;
 }) {
   const router = useRouter();
   const [side, setSide] = useState<Side>(initialSide);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(initialQuantity);
   const [useBonus, setUseBonus] = useState(true);
   const [buy, setBuy] = useState(initialBuy);
   const [sell, setSell] = useState(initialSell);
@@ -137,6 +141,7 @@ export function TradeTicket({
 
   return (
     <section id="trade" className="rounded-3xl border border-line bg-card p-4">
+      {priceNotice ? <p className="mb-3 whitespace-pre-line rounded-2xl bg-pitch p-3 text-sm">{priceNotice}{"\n"}Confirm the updated price before trading.</p> : null}
       <div className="mb-3 flex gap-6 border-b border-line text-sm">
         <span className="border-b-2 border-india pb-2 font-semibold">Trade</span>
         <span className="pb-2 text-muted">Market depth is simulated</span>

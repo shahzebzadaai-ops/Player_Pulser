@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { attachVisitCookies } from "@/server/visit-cookies";
 
-const PROTECTED = ["/home", "/market", "/players", "/portfolio", "/rewards", "/wallet", "/notifications", "/admin"];
+const PROTECTED = ["/admin"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -10,7 +10,6 @@ export function proxy(request: NextRequest) {
   if (needsAuth && !signedIn) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("next", pathname);
     return attachVisitCookies(request, NextResponse.redirect(url));
   }
   return attachVisitCookies(request, NextResponse.next());

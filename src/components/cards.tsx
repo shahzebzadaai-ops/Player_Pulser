@@ -17,7 +17,7 @@ export function LiveCard({ player, className = "w-[178px] shrink-0" }: { player:
           <PulseStar playerId={player.id} state={player.pulse.state} />
           <span className="sr-only">Market Pulse</span>
           <span className="truncate">{player.pulse.activity}</span>
-          <span className="rounded-full bg-pitch px-1.5 py-0.5 text-[10px] font-semibold text-india">Simulation</span>
+          <span className="rounded-full bg-pitch px-1.5 py-0.5 text-[10px] font-semibold text-india">Showcase</span>
         </p>
       ) : null}
       <p className="num text-lg font-bold">
@@ -51,6 +51,7 @@ export function MoverCard({ player }: { player: PlayerView }) {
       <p className={`text-xs ${up ? "text-gain" : "text-loss"}`}>
         <PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />
       </p>
+      <Sparkline playerId={player.id} values={player.history} positive={up} />
     </Link>
   );
 }

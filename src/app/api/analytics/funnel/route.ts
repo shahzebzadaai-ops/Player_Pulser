@@ -14,6 +14,11 @@ const PUBLIC_EVENTS = [
   "SIGNUP_STARTED",
   "DEPOSIT_PAGE_VIEWED",
   "PAYMENT_METHOD_SELECTED",
+  "signup_started",
+  "auth_google_selected",
+  "auth_phone_selected",
+  "auth_email_selected",
+  "otp_requested",
 ] as const;
 
 const schema = z.object({

@@ -12,8 +12,9 @@ export function AttributionBeacon() {
 
   useEffect(() => {
     if (!isTrackablePath(pathname)) return;
-    if (sentPaths.has(pathname)) return;
-    sentPaths.add(pathname);
+    const key = `${pathname}?${search.toString()}`;
+    if (sentPaths.has(key)) return;
+    sentPaths.add(key);
     void fetch("/api/attribution/collect", {
       method: "POST",
       headers: { "content-type": "application/json" },

@@ -205,7 +205,6 @@ export function DayRange({
 
 export function MarketPulse() {
   const markets = useExternalMarkets();
-  const [paused, setPaused] = useState(false);
   const quotes = markets.length > 0 ? markets : PLACEHOLDER;
   return (
     <section aria-label="Global market pulse" className="mt-3 rounded-2xl border border-line bg-card px-3 py-2">
@@ -223,19 +222,14 @@ export function MarketPulse() {
           event.preventDefault();
           event.currentTarget.scrollBy({ left: event.key === "ArrowRight" ? 96 : -96, behavior: "smooth" });
         }}
-        onPointerEnter={() => setPaused(true)}
-        onPointerLeave={() => setPaused(false)}
-        onPointerDown={() => setPaused(true)}
-        onPointerUp={() => setPaused(false)}
-        onPointerCancel={() => setPaused(false)}
       >
-        <div className="market-marquee items-center" style={{ animationPlayState: paused ? "paused" : "running" }}>
-          <div className="flex items-center gap-8 pr-8">
+        <div className="market-marquee items-center">
+          <div className="ticker-group gap-8 pr-8">
             {quotes.map((quote) => (
               <PulseItem key={quote.symbol} quote={quote} />
             ))}
           </div>
-          <div className="flex items-center gap-8 pr-8" aria-hidden>
+          <div className="ticker-group gap-8 pr-8" aria-hidden>
             {quotes.map((quote) => (
               <PulseItem key={`${quote.symbol}-copy`} quote={quote} />
             ))}

@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomInt, scrypt as scryptCallback, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { Prisma, type User } from "@prisma/client";
+import { authFlags } from "@/domain/auth-flags";
 import { AppError } from "@/domain/errors";
 import { otpAttemptAllowed, otpResendAllowed } from "@/domain/growth";
 import { INVESTOR_DEMO_EMAIL, isInvestorDemoIdentity } from "@/domain/investor-demo";
@@ -8,9 +9,12 @@ import { devAuthAllowed, normalizeIndianPhone, passwordIssue } from "@/domain/ph
 import { prisma, type Tx } from "./prisma";
 import { grantWelcomeBonus } from "./bonus";
 import { recordPolicyAcceptance } from "./consent";
+import { attachIdentity } from "./identities";
 import { withUserLock } from "./ledger";
+import { deliverOtp } from "./otp-provider";
 import { assertDurableRate } from "./rate-limit";
 import { getSettings } from "./settings";
+import { assignTemporaryUsername } from "./usernames";
 
 const scrypt = promisify(scryptCallback);
 export const SESSION_COOKIE = "pp_session";
@@ -30,12 +34,16 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return timingSafeEqual(derived, expected);
 }
 
-function sessionPepper(): string {
+export function authSecret(): string {
   const secret = process.env.AUTH_SECRET ?? "";
   if (process.env.NODE_ENV === "production" && secret.length < 32) {
     throw new AppError("CONFIG", "AUTH_SECRET is not configured.", 500);
   }
   return secret || "development-only-pepper";
+}
+
+function sessionPepper(): string {
+  return authSecret();
 }
 
 export function hashSessionToken(token: string): string {
@@ -48,6 +56,7 @@ export async function issueSession(userId: string): Promise<{ token: string; exp
   await prisma.session.create({
     data: { userId, tokenHash: hashSessionToken(token), expiresAt },
   });
+  await prisma.user.update({ where: { id: userId }, data: { lastLoginAt: new Date() } });
   return { token, expiresAt };
 }
 
@@ -119,17 +128,27 @@ export async function signup(input: {
           displayName: input.displayName?.trim() || "Cricket Fan",
           passwordHash,
           role: "CUSTOMER",
+          signupMethod: "PASSWORD",
         },
+      });
+      await attachIdentity(tx, {
+        userId: user.id,
+        provider: phone ? "PHONE" : "EMAIL",
+        providerAccountId: (phone ?? email) as string,
+        normalizedPhone: phone,
+        normalizedEmail: email,
+        verifiedAt: null,
       });
       if (input.acceptedTerms) {
         await recordPolicyAcceptance(tx, { userId: user.id, ip: input.ip, userAgent: input.userAgent });
       }
       await grantWelcomeBonus(tx, user.id, settings, await sharedWelcomeSignals(tx, user.id, input.visitorId));
+      await assignTemporaryUsername(tx, user.id);
       return user;
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      throw new AppError("EXISTS", "An account with those details already exists.", 409);
+      throw new AppError("EXISTS", "We couldn't create that account. Try signing in.", 409);
     }
     throw error;
   }
@@ -177,6 +196,7 @@ export async function requestDevOtp(phoneInput: string): Promise<{ challengeId: 
   const challenge = await prisma.$transaction(async (tx) => {
     const created = await tx.otpChallenge.create({
       data: {
+        channel: "PHONE",
         phone,
         codeHash: createHash("sha256").update(devCode).digest("hex"),
         expiresAt: new Date(Date.now() + 5 * 60 * 1000),
@@ -188,45 +208,111 @@ export async function requestDevOtp(phoneInput: string): Promise<{ challengeId: 
     });
     return created;
   });
+  await deliverOtp({ channel: "PHONE", destination: phone, code: devCode });
   return { challengeId: challenge.id, devCode };
 }
 
 export async function verifyDevOtp(
   challengeId: string,
   code: string,
-  consent?: { accepted: boolean; displayName?: string; ip?: string | null; userAgent?: string | null; visitorId?: string | null },
+  consent?: { accepted: boolean; displayName?: string; ip?: string | null; userAgent?: string | null; visitorId?: string | null; sessionUserId?: string | null },
+  allowConfigured = false,
 ): Promise<User> {
-  if (!devAuthAllowed()) throw new AppError("NOT_FOUND", "Not found.", 404);
+  if (!devAuthAllowed() && !(allowConfigured && authFlags().phoneOtpEnabled)) throw new AppError("NOT_FOUND", "Not found.", 404);
   const challenge = await prisma.otpChallenge.findUnique({ where: { id: challengeId } });
-  if (!challenge || challenge.consumedAt || challenge.expiresAt.getTime() < Date.now()) {
-    throw new AppError("INVALID_OTP", "That code is not valid any more.", 401);
+  if (!challenge || !challenge.phone || challenge.consumedAt) {
+    throw new AppError("INVALID_OTP", "That code has expired. Send a new one.", 401);
   }
-  await assertDurableRate("otp-verify", challenge.phone, 10 * 60_000, 15);
+  if (challenge.expiresAt.getTime() < Date.now()) {
+    throw new AppError("INVALID_OTP", "That code has expired. Send a new one.", 401);
+  }
+  const phone = challenge.phone;
+  await assertDurableRate("otp-verify", phone, 10 * 60_000, 15);
   if (!otpAttemptAllowed(challenge.attempts)) {
-    throw new AppError("RATE_LIMIT", "Too many attempts. Request a new code.", 429, { retryAfter: "300" });
+    throw new AppError("RATE_LIMIT", "Too many attempts. Try again shortly.", 429, { retryAfter: "300" });
   }
   const hash = createHash("sha256").update(code).digest("hex");
   if (challenge.codeHash !== hash) {
     await prisma.otpChallenge.update({ where: { id: challenge.id }, data: { attempts: { increment: 1 } } });
-    throw new AppError("INVALID_OTP", "That code is not valid any more.", 401);
+    throw new AppError("INVALID_OTP", "That code was not accepted.", 401);
   }
   const consumed = await prisma.otpChallenge.updateMany({
     where: { id: challenge.id, consumedAt: null, codeHash: hash, expiresAt: { gt: new Date() } },
     data: { consumedAt: new Date() },
   });
-  if (consumed.count !== 1) throw new AppError("INVALID_OTP", "That code is not valid any more.", 401);
-  const existing = await prisma.user.findUnique({ where: { phone: challenge.phone } });
-  if (existing) return existing;
+  if (consumed.count !== 1) throw new AppError("INVALID_OTP", "That code has expired. Send a new one.", 401);
+  const existing = await prisma.user.findUnique({ where: { phone } });
+  if (consent?.sessionUserId) {
+    if (existing && existing.id !== consent.sessionUserId) {
+      throw new AppError("EXISTS", "That identity is already connected to another account.", 409);
+    }
+    const owner = await prisma.user.findUnique({ where: { id: consent.sessionUserId } });
+    if (!owner || isInvestorDemoIdentity(owner) || (owner.phone && owner.phone !== phone)) {
+      throw new AppError("EXISTS", "That identity is already connected to another account.", 409);
+    }
+    await attachIdentity(prisma, {
+      userId: owner.id,
+      provider: "PHONE",
+      providerAccountId: phone,
+      normalizedPhone: phone,
+      verifiedAt: new Date(),
+    });
+    if (owner.accountStatus !== "RESTRICTED") {
+      await prisma.user.update({
+        where: { id: owner.id },
+        data: {
+          phone,
+          phoneVerifiedAt: owner.phoneVerifiedAt ?? new Date(),
+          accountStatus: owner.accountStatus === "REGISTERED" ? "CONTACT_VERIFIED" : owner.accountStatus,
+        },
+      });
+    }
+    return owner;
+  }
+  if (existing) {
+    await attachIdentity(prisma, {
+      userId: existing.id,
+      provider: "PHONE",
+      providerAccountId: phone,
+      normalizedPhone: phone,
+      verifiedAt: new Date(),
+    });
+    if (existing.accountStatus !== "RESTRICTED") {
+      await prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          phoneVerifiedAt: existing.phoneVerifiedAt ?? new Date(),
+          accountStatus: existing.accountStatus === "REGISTERED" ? "CONTACT_VERIFIED" : existing.accountStatus,
+        },
+      });
+    }
+    return existing;
+  }
   if (!consent?.accepted) throw new AppError("CONSENT", "Agree to the Terms of Use and Privacy Policy.", 400);
   const settings = await getSettings();
-  return withUserLock(`otp:${challenge.phone}`, async (tx) => {
-    const again = await tx.user.findUnique({ where: { phone: challenge.phone } });
+  return withUserLock(`otp:${phone}`, async (tx) => {
+    const again = await tx.user.findUnique({ where: { phone } });
     if (again) return again;
     const user = await tx.user.create({
-      data: { phone: challenge.phone, displayName: consent.displayName?.trim() || "Cricket Fan", role: "CUSTOMER" },
+      data: {
+        phone,
+        displayName: consent.displayName?.trim() || "Cricket Fan",
+        role: "CUSTOMER",
+        signupMethod: "PHONE",
+        phoneVerifiedAt: new Date(),
+        accountStatus: "CONTACT_VERIFIED",
+      },
+    });
+    await attachIdentity(tx, {
+      userId: user.id,
+      provider: "PHONE",
+      providerAccountId: phone,
+      normalizedPhone: phone,
+      verifiedAt: new Date(),
     });
     await recordPolicyAcceptance(tx, { userId: user.id, ip: consent.ip, userAgent: consent.userAgent });
     await grantWelcomeBonus(tx, user.id, settings, await sharedWelcomeSignals(tx, user.id, consent.visitorId));
+    await assignTemporaryUsername(tx, user.id);
     return user;
   });
 }

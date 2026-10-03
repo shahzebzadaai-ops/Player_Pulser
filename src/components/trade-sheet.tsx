@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { currentIndicativePaise } from "@/domain/indicative-price";
 import { formatPaise } from "@/domain/money";
 import { PriceFlash } from "./price-display";
 import { useLivePlayer } from "./price-stream";
@@ -9,27 +10,29 @@ export function TradeSheet({
   playerId,
   buyPaise,
   sellPaise,
+  initialOpen = false,
   children,
 }: {
   playerId: string;
   buyPaise: string;
   sellPaise: string;
+  initialOpen?: boolean;
   children: React.ReactNode;
 }) {
   const live = useLivePlayer(playerId);
-  const buy = live?.buyPaise ?? buyPaise;
-  const sell = live?.sellPaise ?? sellPaise;
-  const [open, setOpen] = useState(false);
+  const buy = currentIndicativePaise(live?.buyPaise, buyPaise);
+  const sell = currentIndicativePaise(live?.sellPaise, sellPaise);
+  const [open, setOpen] = useState(initialOpen);
   return (
     <>
       <div className="sticky bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-30 grid grid-cols-2 gap-3">
-        <button type="button" className="btn-primary press w-full flex-col" onClick={() => setOpen(true)}>
+        <button type="button" className="btn-primary press w-full flex-col" disabled={!buy} onClick={() => setOpen(true)}>
           Buy
-          <span className="block text-xs font-medium">@ <PriceFlash value={Number(buy)}>{formatPaise(buy)}</PriceFlash></span>
+          <span className="block whitespace-normal text-xs font-medium leading-tight">{buy ? <>@ <PriceFlash value={Number(buy)}>{formatPaise(buy)}</PriceFlash></> : "Loading current price…"}</span>
         </button>
-        <button type="button" className="btn-sell press w-full flex-col" onClick={() => setOpen(true)}>
+        <button type="button" className="btn-sell press w-full flex-col" disabled={!sell} onClick={() => setOpen(true)}>
           Sell
-          <span className="block text-xs font-medium">@ <PriceFlash value={Number(sell)}>{formatPaise(sell)}</PriceFlash></span>
+          <span className="block whitespace-normal text-xs font-medium leading-tight">{sell ? <>@ <PriceFlash value={Number(sell)}>{formatPaise(sell)}</PriceFlash></> : "Loading current price…"}</span>
         </button>
       </div>
       {open ? (
