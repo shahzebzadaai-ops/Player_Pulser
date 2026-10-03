@@ -1,4 +1,5 @@
 import { resolveEngineMode } from "@/domain/pricing-engine";
+import { clampShowcaseTarget, clampShowcaseVolatility, marketMode } from "@/domain/showcase-market";
 import { DEFAULT_APP_SETTINGS, simulationCycleMs, type AppSettings, type PricingMode } from "@/domain/settings";
 import { requireReason, writeAudit } from "./audit";
 import { prisma, type Tx } from "./prisma";
@@ -71,6 +72,9 @@ async function readSettings(db: Tx): Promise<AppSettings> {
       DEFAULT_APP_SETTINGS.pricingSimulationCapBps,
     ),
     simulationCycleMs: simulationCycleMs(values.get("pricing.simulationCycleMs") ?? DEFAULT_APP_SETTINGS.simulationCycleMs),
+    marketMode: marketMode(values.get("pricing.marketMode")),
+    showcaseRangeTarget: clampShowcaseTarget(values.get("pricing.showcaseRangeTarget") ?? DEFAULT_APP_SETTINGS.showcaseRangeTarget),
+    showcaseVolatility: clampShowcaseVolatility(values.get("pricing.showcaseVolatility") ?? DEFAULT_APP_SETTINGS.showcaseVolatility),
     pricingMode,
     engineMode: resolveEngineMode(values.get("pricing.engineMode"), process.env.PRICING_ENGINE_MODE),
     performanceMatchCapBps: numberSetting(values.get("pricing.performanceMatchCapBps"), DEFAULT_APP_SETTINGS.performanceMatchCapBps),
@@ -128,6 +132,9 @@ export const SETTING_DEFAULT_ROWS: { key: string; value: string | number }[] = [
   { key: "bonus.minCashPortionBps", value: DEFAULT_APP_SETTINGS.bonusMinCashPortionBps },
   { key: "pricing.simulationCapBps", value: DEFAULT_APP_SETTINGS.pricingSimulationCapBps },
   { key: "pricing.simulationCycleMs", value: DEFAULT_APP_SETTINGS.simulationCycleMs },
+  { key: "pricing.marketMode", value: DEFAULT_APP_SETTINGS.marketMode },
+  { key: "pricing.showcaseRangeTarget", value: DEFAULT_APP_SETTINGS.showcaseRangeTarget },
+  { key: "pricing.showcaseVolatility", value: DEFAULT_APP_SETTINGS.showcaseVolatility },
   { key: "pricing.mode", value: DEFAULT_APP_SETTINGS.pricingMode },
   { key: "pricing.engineMode", value: DEFAULT_APP_SETTINGS.engineMode },
   { key: "pricing.performanceMatchCapBps", value: DEFAULT_APP_SETTINGS.performanceMatchCapBps },

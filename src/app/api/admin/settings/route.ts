@@ -27,6 +27,9 @@ const SENSITIVE = new Set([
   "quote.ttlSeconds",
   "quote.ttlLiveSeconds",
   "pricing.engineMode",
+  "pricing.marketMode",
+  "pricing.showcaseRangeTarget",
+  "pricing.showcaseVolatility",
   "pricing.performanceMatchCapBps",
   "pricing.circuitBreakerBps",
   "pricing.demandWindowSeconds",
@@ -58,11 +61,13 @@ export async function POST(request: Request) {
       return json({ ok: true });
     }
     const reason = SENSITIVE.has(body.key) ? requireReason(body.reason) : body.reason?.trim() || null;
-    const numeric = !body.key.endsWith("Paise") && body.key !== "pricing.mode" && body.key !== "pricing.engineMode";
+    const numeric = !body.key.endsWith("Paise") && body.key !== "pricing.mode" && body.key !== "pricing.engineMode" && body.key !== "pricing.marketMode";
     const value = body.key === "pricing.mode"
       ? body.value === "paused" ? "paused" : "simulation"
       : body.key === "pricing.engineMode"
         ? body.value === "EVENT_DRIVEN" ? "EVENT_DRIVEN" : "SIMULATION"
+      : body.key === "pricing.marketMode"
+        ? body.value === "EVENT_DRIVEN" ? "EVENT_DRIVEN" : "SHOWCASE"
       : numeric
         ? Number(body.value)
         : body.value;

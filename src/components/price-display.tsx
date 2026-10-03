@@ -172,8 +172,40 @@ function PulseItem({ quote }: { quote: ExternalQuote }) {
   );
 }
 
+export function DayRange({
+  playerId,
+  lowPaise,
+  highPaise,
+  midPaise,
+}: {
+  playerId: string;
+  lowPaise: string;
+  highPaise: string;
+  midPaise: string;
+}) {
+  const live = useLivePlayer(playerId);
+  const low = Number(live?.dayLowPaise ?? lowPaise);
+  const high = Number(live?.dayHighPaise ?? highPaise);
+  const mid = Number(live?.midPaise ?? midPaise);
+  const span = high - low;
+  const position = span <= 0 ? 50 : Math.min(100, Math.max(0, ((mid - low) / span) * 100));
+  return (
+    <div className="mt-3">
+      <p className="text-[11px] font-semibold tracking-[0.14em] text-muted">24H RANGE</p>
+      <div className="relative mt-2 h-1.5 rounded-full bg-card-2">
+        <span className="absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full bg-india" style={{ left: `calc(${position}% - 7px)` }} />
+      </div>
+      <div className="mt-1 flex justify-between text-[10px] tracking-[0.12em] text-muted">
+        <span>LOW</span>
+        <span>HIGH</span>
+      </div>
+    </div>
+  );
+}
+
 export function MarketPulse() {
   const markets = useExternalMarkets();
+  const [paused, setPaused] = useState(false);
   const quotes = markets.length > 0 ? markets : PLACEHOLDER;
   return (
     <section aria-label="Global market pulse" className="mt-3 rounded-2xl border border-line bg-card px-3 py-2">
@@ -181,8 +213,15 @@ export function MarketPulse() {
         <h2 className="text-[11px] font-semibold tracking-[0.14em] text-muted">GLOBAL MARKET PULSE</h2>
         <p className="text-[10px] text-muted">External reference</p>
       </div>
-      <div className="marquee-window mt-2 overflow-hidden">
-        <div className="market-marquee items-center">
+      <div
+        className="marquee-window mt-2 overflow-hidden"
+        onPointerEnter={() => setPaused(true)}
+        onPointerLeave={() => setPaused(false)}
+        onPointerDown={() => setPaused(true)}
+        onPointerUp={() => setPaused(false)}
+        onPointerCancel={() => setPaused(false)}
+      >
+        <div className="market-marquee items-center" style={{ animationPlayState: paused ? "paused" : "running" }}>
           <div className="flex items-center gap-8 pr-8">
             {quotes.map((quote) => (
               <PulseItem key={quote.symbol} quote={quote} />

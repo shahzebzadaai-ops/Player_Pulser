@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { LiveDot, PriceText } from "./visuals";
 
 export function PlayerTicker({
@@ -5,6 +8,7 @@ export function PlayerTicker({
 }: {
   players: { id: string; shortName: string; live: boolean; midPaise: string; changePaise: string; changePercent: number }[];
 }) {
+  const [paused, setPaused] = useState(false);
   if (players.length === 0) return null;
   const row = (copy: string) =>
     players.map((player) => (
@@ -16,10 +20,17 @@ export function PlayerTicker({
       </span>
     ));
   return (
-    <div className="marquee-window mt-3 overflow-hidden rounded-2xl border border-line bg-card py-3">
-      <div className="player-marquee text-xs">
-        <div className="flex items-center gap-10 pr-10">{row("a")}</div>
-        <div className="flex items-center gap-10 pr-10" aria-hidden>
+    <div
+      className="marquee-window mt-3 overflow-hidden rounded-2xl border border-line bg-card py-3"
+      onPointerEnter={() => setPaused(true)}
+      onPointerLeave={() => setPaused(false)}
+      onPointerDown={() => setPaused(true)}
+      onPointerUp={() => setPaused(false)}
+      onPointerCancel={() => setPaused(false)}
+    >
+      <div className="player-marquee text-xs" style={{ animationPlayState: paused ? "paused" : "running" }}>
+        <div className="flex items-center gap-16 pr-16">{row("a")}</div>
+        <div className="flex items-center gap-16 pr-16" aria-hidden>
           {row("b")}
         </div>
       </div>

@@ -6,7 +6,7 @@ import { PulsePanel } from "@/components/pulse-star";
 import { TradeSheet } from "@/components/trade-sheet";
 import { TradeTicket } from "@/components/trade-ticket";
 import { WatchButton } from "@/components/watch-button";
-import { LiveSpread } from "@/components/price-display";
+import { DayRange, LiveSpread } from "@/components/price-display";
 import { LiveDot, Logo, Portrait, PriceText, roleLabel } from "@/components/visuals";
 import { formatPaise } from "@/domain/money";
 import { getCurrentUser } from "@/server/current-user";
@@ -73,11 +73,12 @@ export default async function PlayerPage({
         </div>
       </section>
       <dl className="mt-3 grid grid-cols-4 gap-2 text-center text-[11px]">
-        <Stat label="Window high" value={formatPaise(player.highPaise)} />
-        <Stat label="Window low" value={formatPaise(player.lowPaise)} />
-        <Stat label="24h change" value={<PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />} />
-        <Stat label="Total traded" value={player.totalTradedLabel} />
+        <Stat label="24h High" value={formatPaise(player.highPaise)} />
+        <Stat label="24h Low" value={formatPaise(player.lowPaise)} />
+        <Stat label="24h Change" value={<PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />} />
+        <Stat label="Total Traded" value={player.totalTradedLabel} />
       </dl>
+      <DayRange playerId={player.id} lowPaise={player.lowPaise} highPaise={player.highPaise} midPaise={player.midPaise} />
       <div className="mt-4">
         <PriceChart playerId={player.id} initial={history.points} />
         {history.note ? <p className="mt-2 text-xs text-muted">{history.note}</p> : null}

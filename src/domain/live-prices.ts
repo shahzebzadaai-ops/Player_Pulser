@@ -26,6 +26,8 @@ export type PlayerQuote = {
   source?: string;
   chartTime?: number | null;
   chartValue?: number | null;
+  dayHighPaise?: string;
+  dayLowPaise?: string;
   live?: boolean;
   lastEvent?: string | null;
   whyLine?: string | null;
@@ -48,6 +50,7 @@ export type PriceFrame = {
   stale?: boolean;
   at?: string;
   mode?: string;
+  marketMode?: "SHOWCASE" | "EVENT_DRIVEN";
   players?: PlayerQuote[];
   markets?: ExternalQuote[];
 };
@@ -58,16 +61,17 @@ export type PriceStore = {
   phase: StreamPhase;
   lastEventAt: number | null;
   feedStale: boolean;
+  marketMode: "SHOWCASE" | "EVENT_DRIVEN" | null;
 };
 
 export function emptyPriceStore(): PriceStore {
-  return { players: new Map(), markets: [], phase: "connecting", lastEventAt: null, feedStale: false };
+  return { players: new Map(), markets: [], phase: "connecting", lastEventAt: null, feedStale: false, marketMode: null };
 }
 
 const PUBLIC_SOURCES = new Set(["simulation", "performance", "demand", "news", "manual"]);
 
 export function publicPriceSource(source: string | null | undefined, mode: string): string {
-  if (source === "SIMULATION_ONLY" || source === "seed") return "simulation";
+  if (source === "SIMULATION_ONLY" || source === "seed" || source === "SHOWCASE") return source === "SHOWCASE" ? "showcase" : "simulation";
   if (source && PUBLIC_SOURCES.has(source)) return source;
   return mode;
 }
@@ -99,7 +103,7 @@ export function nextReconnectAttempt(attempt: number, opened: boolean): number {
 
 export function reducePriceFrame(state: PriceStore, frame: PriceFrame, now: number): PriceStore {
   if (frame.type === "heartbeat") {
-    return { ...state, phase: "open", lastEventAt: now };
+    return { ...state, phase: "open", lastEventAt: now, marketMode: frame.marketMode ?? state.marketMode };
   }
   if (!frame.players) return state;
   const players = new Map(state.players);
@@ -110,6 +114,7 @@ export function reducePriceFrame(state: PriceStore, frame: PriceFrame, now: numb
     phase: "open",
     lastEventAt: now,
     feedStale: Boolean(frame.stale),
+    marketMode: frame.marketMode ?? state.marketMode,
   };
 }
 

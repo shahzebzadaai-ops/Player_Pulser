@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { BannerSlot } from "@/components/banner-slot";
 import { LiveCard, MoverCard, Notice, SectionHead } from "@/components/cards";
+import { FeaturedPlayerHero } from "@/components/featured-player";
 import { MarketPulse } from "@/components/price-display";
 import { PlayerTicker } from "@/components/player-ticker";
 import { LogoutButton, WelcomeBanner } from "@/components/chrome";
 import { Logo, Portrait } from "@/components/visuals";
+import { selectFeaturedPlayers } from "@/domain/featured";
 import { customerCta, lifecycleStage } from "@/domain/growth";
 import { formatPaise, formatPercent, formatSignedPaise } from "@/domain/money";
 import { getCurrentUser } from "@/server/current-user";
@@ -41,6 +43,7 @@ export default async function HomePage() {
   const live = market.players.filter((player) => player.live);
   const movers = [...market.players].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent)).slice(0, 8);
   const trending = [...market.players].sort((a, b) => b.changePercent - a.changePercent).slice(0, 4);
+  const featured = selectFeaturedPlayers(market.players).map(({ player, reason }) => ({ ...player, reason }));
 
   return (
     <main className="px-4 pt-4">
@@ -80,6 +83,9 @@ export default async function HomePage() {
           <p className="text-xs text-gold">Bonus balance</p>
           <p className="num mt-1 text-lg font-bold text-gold">{formatPaise(wallet.bonusPaise)}</p>
         </section>
+      </div>
+      <div className="mt-4">
+        <FeaturedPlayerHero players={featured} tradeHref="player" />
       </div>
       <BannerSlot placement="HOME_MAIN" />
       {announcements.map((announcement) => (

@@ -1,4 +1,5 @@
 import type { EngineMode } from "./pricing-engine";
+import type { MarketMode } from "./showcase-market";
 
 export type PricingMode = "simulation" | "paused";
 export type { EngineMode };
@@ -19,6 +20,9 @@ export type AppSettings = {
   bonusMinCashPortionBps: number;
   pricingSimulationCapBps: number;
   simulationCycleMs: number;
+  marketMode: MarketMode;
+  showcaseRangeTarget: number;
+  showcaseVolatility: number;
   pricingMode: PricingMode;
   engineMode: EngineMode;
   performanceMatchCapBps: number;
@@ -57,6 +61,9 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   bonusMinCashPortionBps: 5_000,
   pricingSimulationCapBps: 200,
   simulationCycleMs: 4_000,
+  marketMode: "SHOWCASE",
+  showcaseRangeTarget: 50,
+  showcaseVolatility: 100,
   pricingMode: "simulation",
   engineMode: "SIMULATION",
   performanceMatchCapBps: 1200,

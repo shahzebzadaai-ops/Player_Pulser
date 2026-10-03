@@ -110,16 +110,20 @@ select {
 .player-marquee {
   display: flex;
   width: max-content;
-  animation: ticker 25s linear infinite;
+  animation: ticker 44s linear infinite;
 }
 
 .player-marquee {
-  animation-duration: 36s;
+  animation-duration: 60s;
 }
 
 @media (min-width: 768px) {
   .market-marquee {
-    animation-duration: 29s;
+    animation-duration: 48s;
+  }
+
+  .player-marquee {
+    animation-duration: 65s;
   }
 }
 
@@ -147,6 +151,15 @@ select {
 @keyframes ticker {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
+}
+
+@keyframes hero-fade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.hero-fade {
+  animation: hero-fade 480ms ease;
 }
 
 @keyframes shimmer {
@@ -182,6 +195,7 @@ select {
   .tick-down,
   .market-marquee,
   .player-marquee,
+  .hero-fade,
   .skel,
   .press:active,
   .pulse-star {

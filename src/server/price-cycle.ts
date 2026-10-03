@@ -1,5 +1,12 @@
-import { directSimulatedPricingEnabled } from "@/domain/pricing-engine";
-import { prepareSimulatedTick } from "@/domain/pricing";
+import { applyPriceFactorFlags } from "@/domain/pricing";
+import {
+  initialShowcaseState,
+  MAJOR_PLAYER_SLUGS,
+  SHOWCASE_SOURCE,
+  showcasePricingActive,
+  stepShowcase,
+  type ShowcaseState,
+} from "@/domain/showcase-market";
 import { getFeatureFlags } from "./features";
 import { applyPendingPricing } from "./pricing";
 import { prisma } from "./prisma";
@@ -9,17 +16,12 @@ import { writePriceCache } from "./redis";
 import { publicPricePayload } from "./queries";
 import { getSettings } from "./settings";
 
-const EVENTS = [
-  { kind: "4", summary: "Guided to the boundary in the simulation." },
-  { kind: "6", summary: "Clears the rope in the simulation." },
-  { kind: "1", summary: "Rotates the strike." },
-  { kind: "W", summary: "A wicket changes the simulated demand." },
-];
+const showcaseStates = new Map<string, ShowcaseState>();
 
-export async function maintainPrices(): Promise<"event-driven" | "simulation" | "idle"> {
+export async function maintainPrices(): Promise<"event-driven" | "showcase" | "idle"> {
   const settings = await getSettings();
-  if (settings.pricingMode !== "simulation") return "idle";
-  if (!directSimulatedPricingEnabled(settings.engineMode)) {
+  if (!showcasePricingActive(settings)) {
+    if (settings.pricingMode === "paused") return "idle";
     await applyPendingPricing();
     await writePriceCache(JSON.stringify(await publicPricePayload()));
     return "event-driven";
@@ -31,28 +33,51 @@ export async function maintainPrices(): Promise<"event-driven" | "simulation" | 
       where: { playerId: player.id },
       orderBy: { createdAt: "desc" },
     });
-    const tick = prepareSimulatedTick({
-      previousMidPaise: latest?.midPaise ?? player.referenceMidPaise,
-      performance: (Math.random() * 2 - 1) * (player.liveMatch ? 1 : 0.45),
-      demand: Math.random() * 2 - 1,
-      news: (Math.random() * 2 - 1) * 0.6,
-      capBps: settings.pricingSimulationCapBps,
-      newsPriceMovementEnabled: flags.newsPriceMovementEnabled,
-      demandPriceMovementEnabled: flags.demandPriceMovementEnabled,
+    const reference = player.referenceMidPaise;
+    const current = latest?.midPaise ?? player.midPricePaise ?? reference;
+    const state = showcaseStates.get(player.id) ?? initialShowcaseState(player.slug, reference);
+    const day = await prisma.priceTick.aggregate({
+      where: { playerId: player.id, createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+      _max: { midPaise: true },
+      _min: { midPaise: true },
     });
+    const factors = applyPriceFactorFlags(
+      {
+        performance: (Math.random() * 2 - 1) * (player.liveMatch ? 0.8 : 0.25),
+        demand: Math.random() * 2 - 1,
+        news: (Math.random() * 2 - 1) * 0.4,
+      },
+      flags,
+    );
+    const tick = stepShowcase({
+      midPaise: current,
+      referencePaise: reference,
+      highPaise: day._max.midPaise ?? current,
+      lowPaise: day._min.midPaise ?? current,
+      state,
+      performance: factors.performance,
+      demand: factors.demand,
+      news: factors.news,
+      major: MAJOR_PLAYER_SLUGS.has(player.slug),
+      random: Math.random,
+      rangeTarget: settings.showcaseRangeTarget,
+      volatilityScale: settings.showcaseVolatility,
+    });
+    showcaseStates.set(player.id, tick.state);
+    if (!tick.moved) continue;
     const stored = await prisma.priceTick.create({
       data: {
         playerId: player.id,
         midPaise: tick.midPaise,
-        previousMidPaise: tick.previousMidPaise,
-        source: tick.source,
+        previousMidPaise: current,
+        source: SHOWCASE_SOURCE,
         performance: tick.performance,
         demand: tick.demand,
         news: tick.news,
         performanceBps: tick.performanceBps,
         demandBps: tick.demandBps,
         newsBps: tick.newsBps,
-        reason: tick.reason,
+        reason: "Showcase market",
       },
     });
     await prisma.player.update({
@@ -65,7 +90,7 @@ export async function maintainPrices(): Promise<"event-driven" | "simulation" | 
       publishedAt: stored.createdAt.toISOString(),
     });
     try {
-      await onMidPricePersisted(player.id, tick.previousMidPaise, tick.midPaise);
+      await onMidPricePersisted(player.id, current, tick.midPaise);
     } catch (error) {
       console.error(JSON.stringify({
         level: "error",
@@ -73,21 +98,7 @@ export async function maintainPrices(): Promise<"event-driven" | "simulation" | 
         at: new Date().toISOString(),
       }));
     }
-    if (player.liveMatch && Math.random() < 0.15) {
-      const event = EVENTS[Math.floor(Math.random() * EVENTS.length)];
-      if (!event) continue;
-      const over = `${Math.floor(Math.random() * 20)}.${Math.floor(Math.random() * 6)}`;
-      await prisma.matchEvent.create({
-        data: {
-          playerId: player.id,
-          overLabel: over,
-          kind: event.kind,
-          summary: `${player.shortName}: ${event.summary}`,
-          simulated: true,
-        },
-      });
-    }
   }
   await writePriceCache(JSON.stringify(await publicPricePayload()));
-  return "simulation";
+  return "showcase";
 }

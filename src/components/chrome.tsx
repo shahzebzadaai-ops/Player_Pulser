@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { StreamStatus } from "./price-stream";
+import { ShowcaseMark, StreamStatus } from "./price-stream";
 
 export function LogoutButton() {
   const router = useRouter();
@@ -26,7 +26,8 @@ export function LogoutButton() {
 export function AppFrame({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto min-h-dvh w-full max-w-[430px] pb-28">
-      <div className="flex justify-end px-4 pt-3">
+      <div className="flex items-center justify-end gap-3 px-4 pt-3">
+        <ShowcaseMark />
         <StreamStatus />
       </div>
       <ConnectionState />

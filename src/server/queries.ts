@@ -33,11 +33,12 @@ export type PlayerView = {
   why: string[];
   highPaise: string;
   lowPaise: string;
+  rangePercent: number;
   pulse: PulseCustomerView | null;
 };
 
 function whyFromTick(tick: { source: string; reason: string | null; performance: number; demand: number; news: number } | undefined): string[] {
-  if (tick && tick.source !== "SIMULATION_ONLY" && tick.reason) {
+  if (tick && tick.source !== "SIMULATION_ONLY" && tick.source !== "SHOWCASE" && tick.reason) {
     const lines = tick.reason.split("\n").filter(Boolean);
     if (lines.length > 0) return lines;
   }
@@ -68,6 +69,49 @@ type RecentTick = {
   news: number;
 };
 
+function asBig(value: bigint | number | string | null | undefined, fallback: bigint): bigint {
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return BigInt(Math.trunc(value));
+  if (typeof value === "string" && /^-?\d+$/.test(value)) return BigInt(value);
+  return fallback;
+}
+
+async function dayBounds(): Promise<Map<string, { high: bigint; low: bigint; baseline: bigint }>> {
+  const rows = await prisma.$queryRaw<{ playerId: string; high: bigint | string; low: bigint | string; baseline: bigint | string }[]>`
+    SELECT p."id" AS "playerId",
+      COALESCE(w."high", p."midPricePaise") AS "high",
+      COALESCE(w."low", p."midPricePaise") AS "low",
+      COALESCE(older."midPaise", earliest."midPaise", p."referenceMidPaise") AS "baseline"
+    FROM "Player" p
+    LEFT JOIN (
+      SELECT "playerId", MAX("midPaise") AS "high", MIN("midPaise") AS "low"
+      FROM "PriceTick"
+      WHERE "createdAt" >= NOW() - INTERVAL '24 hours'
+      GROUP BY "playerId"
+    ) w ON w."playerId" = p."id"
+    LEFT JOIN LATERAL (
+      SELECT t."midPaise"
+      FROM "PriceTick" t
+      WHERE t."playerId" = p."id" AND t."createdAt" <= NOW() - INTERVAL '24 hours'
+      ORDER BY t."createdAt" DESC
+      LIMIT 1
+    ) older ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT t."midPaise"
+      FROM "PriceTick" t
+      WHERE t."playerId" = p."id"
+      ORDER BY t."createdAt" ASC
+      LIMIT 1
+    ) earliest ON TRUE
+  `;
+  const stats = new Map<string, { high: bigint; low: bigint; baseline: bigint }>();
+  for (const row of rows) {
+    const baseline = asBig(row.baseline, 0n);
+    stats.set(row.playerId, { high: asBig(row.high, baseline), low: asBig(row.low, baseline), baseline });
+  }
+  return stats;
+}
+
 async function recentTicks(): Promise<RecentTick[]> {
   return prisma.$queryRaw<RecentTick[]>`
     SELECT t."playerId", t."midPaise", t."createdAt", t."source", t."reason", t."performance", t."demand", t."news"
@@ -82,13 +126,14 @@ async function recentTicks(): Promise<RecentTick[]> {
   `;
 }
 
-async function loadPlayers(): Promise<{ players: PlayerView[]; stale: boolean; mode: string }> {
+async function loadPlayers(): Promise<{ players: PlayerView[]; stale: boolean; mode: string; marketMode: "SHOWCASE" | "EVENT_DRIVEN" }> {
   const settings = await getSettings();
   const flags = await getFeatureFlags();
   const pulseByPlayer = flags.pulsePreviewEnabled ? await latestPulsePreviews() : new Map<string, PulseCustomerView>();
-  const [rows, tickRows] = await Promise.all([
+  const [rows, tickRows, days] = await Promise.all([
     prisma.player.findMany({ orderBy: { name: "asc" } }),
     recentTicks(),
+    dayBounds(),
   ]);
   const ticksByPlayer = new Map<string, RecentTick[]>();
   for (const tick of tickRows) {
@@ -108,8 +153,12 @@ async function loadPlayers(): Promise<{ players: PlayerView[]; stale: boolean; m
     const stale = feedIsStale(latest?.createdAt ?? null, now, settings.feedStaleAfterSeconds);
     if (!stale) anyFresh = true;
     const history = ticks.map((tick) => Number(tick.midPaise));
-    const high = history.length ? Math.max(...history) : Number(mid);
-    const low = history.length ? Math.min(...history) : Number(mid);
+    const day = days.get(player.id);
+    const baseline = day?.baseline ?? previous;
+    const high = day?.high ?? mid;
+    const low = day?.low ?? mid;
+    const span = high > low ? high - low : 0n;
+    const range = player.referenceMidPaise > 0n ? (Number(span) / Number(player.referenceMidPaise)) * 100 : 0;
     return {
       id: player.id,
       slug: player.slug,
@@ -122,22 +171,23 @@ async function loadPlayers(): Promise<{ players: PlayerView[]; stale: boolean; m
       midPaise: mid.toString(),
       buyPaise: spread.buyPaise.toString(),
       sellPaise: spread.sellPaise.toString(),
-      changePaise: (mid - previous).toString(),
-      changePercent: changePercent(mid, previous),
+      changePaise: (mid - baseline).toString(),
+      changePercent: changePercent(mid, baseline),
       history: history.length > 0 ? history : [Number(mid)],
       totalTradedLabel: formatCompactInr(player.totalTradedPaise),
       stale,
       why: whyFromTick(latest),
-      highPaise: BigInt(high).toString(),
-      lowPaise: BigInt(low).toString(),
+      highPaise: high.toString(),
+      lowPaise: low.toString(),
+      rangePercent: range,
       pulse: pulseByPlayer.get(player.id) ?? null,
     } satisfies PlayerView;
   });
-  return { players, stale: !anyFresh, mode: settings.pricingMode };
+  return { players, stale: !anyFresh, mode: settings.pricingMode, marketMode: settings.marketMode };
 }
 
 export async function publicPricePayload() {
-  const { players, stale, mode } = await listPlayers();
+  const { players, stale, mode, marketMode } = await listPlayers();
   const ids = players.map((player) => player.id);
   const [events, ticks] = await Promise.all([
     prisma.cricketEvent.findMany({
@@ -171,6 +221,7 @@ export async function publicPricePayload() {
     stale,
     at: new Date().toISOString(),
     mode,
+    marketMode,
     players: players.map((player) => {
       const tick = tickByPlayer.get(player.id);
       return {
@@ -195,6 +246,8 @@ export async function publicPricePayload() {
         pulseCycleId: player.pulse?.cycleId ?? null,
         chartTime: tick ? Math.floor(tick.createdAt.getTime() / 1000) : null,
         chartValue: tick ? Number(tick.midPaise) / 100 : null,
+        dayHighPaise: player.highPaise,
+        dayLowPaise: player.lowPaise,
       };
     }),
   };

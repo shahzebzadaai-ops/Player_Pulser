@@ -64,6 +64,14 @@ async function buy(userId: string, playerId: string, quantity: number) {
   return executeTrade({ userId, quoteId: quote.quoteId, idempotencyKey: randomUUID() });
 }
 
+async function activateSimulator() {
+  await prisma.feedSourceState.upsert({
+    where: { source: "DevelopmentSimulator" },
+    create: { source: "DevelopmentSimulator", enabled: true, priority: 1, status: "HEALTHY", operatingMode: "ACTIVE" },
+    update: { enabled: true, status: "HEALTHY", operatingMode: "ACTIVE" },
+  });
+}
+
 async function withEngine(mode: "SIMULATION" | "EVENT_DRIVEN", run: () => Promise<void>) {
   const previous = await prisma.appSetting.findUnique({ where: { key: "pricing.engineMode" } });
   await prisma.appSetting.upsert({
@@ -114,6 +122,7 @@ test("a simulator six prices once, reevaluates risk, and crosses postgres notify
         now: new Date("2026-09-28T14:12:11.000Z"),
       });
       expect(event.eventType).toBe("SIX");
+      await activateSimulator();
       const stored = await ingestNormalizedEvent(event);
       expect(stored).toMatchObject({ stored: true, priced: true, corrected: false });
       expect(await prisma.cricketEvent.count({ where: { matchId: match.id, eventType: "SIX" } })).toBe(1);
@@ -272,7 +281,7 @@ test("a successful empty poll is not a source failure and a historical backup ba
     await prisma.feedControl.update({ where: { id: "default" }, data: { activeSource: "DevelopmentSimulator", lastPolledAt: null } });
     await prisma.feedSourceState.update({
       where: { source: "DevelopmentSimulator" },
-      data: { enabled: true, priority: 1, status: "HEALTHY", consecutiveFailures: 0 },
+      data: { enabled: true, priority: 1, status: "HEALTHY", consecutiveFailures: 0, operatingMode: "ACTIVE" },
     });
     for (const source of ["CREX", "Cricbuzz", "Sportskeeda", "PaidProvider"]) {
       await prisma.feedSourceState.update({
@@ -345,6 +354,7 @@ test("a provider correction keeps the original event and does not reprice", asyn
         participationStatus: "ACTIVE",
       },
     });
+    await activateSimulator();
     const event = nextSimulatorDelivery({
       matchId: match.id,
       cursor: 2,

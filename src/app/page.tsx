@@ -4,12 +4,14 @@ import { redirect } from "next/navigation";
 import { BannerSlot } from "@/components/banner-slot";
 import { SignupPrompt } from "@/components/signup-prompt";
 import { LiveCard, MoverCard } from "@/components/cards";
+import { FeaturedPlayerHero } from "@/components/featured-player";
 import { MarketPulse } from "@/components/price-display";
 import { PlayerTicker } from "@/components/player-ticker";
-import { StreamStatus } from "@/components/price-stream";
-import { Logo, Portrait, PriceText, Sparkline } from "@/components/visuals";
-import { getCurrentUser } from "@/server/current-user";
+import { ShowcaseMark, StreamStatus } from "@/components/price-stream";
+import { Logo } from "@/components/visuals";
+import { selectFeaturedPlayers } from "@/domain/featured";
 import { formatPaise } from "@/domain/money";
+import { getCurrentUser } from "@/server/current-user";
 import { listPlayers, type PlayerView } from "@/server/queries";
 import { getSeo } from "@/server/seo";
 
@@ -28,17 +30,16 @@ export default async function LandingPage() {
   const user = await getCurrentUser();
   if (user) redirect("/home");
   let players: PlayerView[] = [];
-  let featured: PlayerView | null = null;
   let movers: PlayerView[] = [];
   let strip: PlayerView[] = [];
   try {
     const market = await listPlayers();
     players = market.players;
-    featured = market.players.find((player) => player.slug === "virat-kohli") ?? market.players[0] ?? null;
     movers = [...market.players].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent)).slice(0, 4);
-    strip = market.players.filter((player) => player.slug !== featured?.slug).slice(0, 4);
+    const featured = selectFeaturedPlayers(market.players);
+    strip = market.players.filter((player) => player.slug !== featured[0]?.player.slug).slice(0, 4);
   } catch {
-    featured = null;
+    players = [];
   }
 
   return (
@@ -46,6 +47,7 @@ export default async function LandingPage() {
       <header className="flex items-center justify-between">
         <Logo />
         <div className="flex items-center gap-2">
+          <ShowcaseMark />
           <StreamStatus />
           <Link href="/signup" className="min-h-11 rounded-xl bg-india px-3 py-2 text-sm font-semibold">
             Sign up
@@ -64,48 +66,19 @@ export default async function LandingPage() {
         </p>
         <p className="mt-3 max-w-[16rem] text-sm text-muted">Buy top Indian players. Track live prices. Sell at the right moment.</p>
         <p className="mt-4 max-w-[9rem] text-right text-sm font-semibold text-india">Players move. So can you.</p>
-        <div className="pointer-events-none absolute bottom-0 right-0 opacity-90">
-          <Portrait name="India" seed="india-hero" className="h-36 w-28" />
-        </div>
       </section>
       <ul className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
         <li className="rounded-full bg-card px-3 py-1">Live updates</li>
         <li className="rounded-full bg-card px-3 py-1">Real-time pricing</li>
         <li className="rounded-full bg-card px-3 py-1">Mobile-first</li>
       </ul>
-      {featured ? (
-        <article className="mt-4 rounded-3xl border border-line bg-card p-4">
-          <div className="flex gap-3">
-            <Portrait name={featured.name} seed={featured.slug} className="h-28 w-24" />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h2 className="text-xl font-bold"><Link href={`/p/${featured.slug}`}>{featured.name}</Link></h2>
-                  <p className="text-xs text-muted">Player price</p>
-                </div>
-                {featured.live ? <span className="rounded-full bg-gain/20 px-2 py-1 text-[10px] font-bold text-gain">LIVE</span> : null}
-              </div>
-              <p className="num text-3xl font-bold">
-                <PriceText playerId={featured.id} field="mid" paise={featured.midPaise} />
-              </p>
-              <p className="text-sm">
-                <PriceText playerId={featured.id} field="change" changePaise={featured.changePaise} changePercent={featured.changePercent} />
-              </p>
-              <Sparkline playerId={featured.id} values={featured.history} positive={Number(featured.changePaise) >= 0} />
-            </div>
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <Link href="/signup" className="flex min-h-12 items-center justify-center rounded-xl bg-gain font-bold text-pitch">
-              BUY
-            </Link>
-            <Link href="/signup" className="flex min-h-12 items-center justify-center rounded-xl bg-loss font-bold">
-              SELL
-            </Link>
-          </div>
-        </article>
-      ) : (
-        <p className="mt-4 rounded-2xl bg-card p-4 text-sm text-muted">Prices appear after the local database is seeded.</p>
-      )}
+      <div className="mt-4">
+        {players.length > 0 ? (
+          <FeaturedPlayerHero players={selectFeaturedPlayers(players).map(({ player, reason }) => ({ ...player, reason }))} tradeHref="account" />
+        ) : (
+          <p className="rounded-2xl bg-card p-4 text-sm text-muted">Prices appear after the local database is seeded.</p>
+        )}
+      </div>
       {strip.length > 0 ? (
         <div className="snap-row mt-3">
           {strip.map((player) => (

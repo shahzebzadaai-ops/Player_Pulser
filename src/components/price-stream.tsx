@@ -142,6 +142,12 @@ export function useStreamLabel(): StreamLabel {
   return streamHealth({ phase: current.phase, lastEventAt: current.lastEventAt, now });
 }
 
+export function ShowcaseMark() {
+  const mode = usePriceStore().marketMode;
+  if (mode !== "SHOWCASE") return null;
+  return <p className="text-[10px] font-semibold tracking-[0.14em] text-muted">SHOWCASE MARKET</p>;
+}
+
 export function StreamStatus() {
   const label = useStreamLabel();
   const text = label === "live" ? "LIVE" : label === "delayed" ? "DELAYED" : "RECONNECTING";
