@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { visibleAuthParts } from "@/domain/auth-surface";
+import { authSheetOpen, visibleAuthParts, withoutAuthMode, withAuthMode } from "@/domain/auth-surface";
 import { AuthSheet } from "./auth-sheet";
 
 type Flags = {
@@ -16,29 +16,24 @@ export function AuthOverlay({ flags }: { flags: Flags }) {
   const pathname = usePathname();
   const router = useRouter();
   const mode = params.get("auth");
-  const open = (mode === "login" || mode === "signup") && !pathname.startsWith("/admin") && !pathname.startsWith("/dev");
-  if (!open || !visibleAuthParts(true).includes("sheet")) return null;
+  const open = authSheetOpen(pathname, params.toString()) && (mode === "login" || mode === "signup");
+  if (!open || !visibleAuthParts(open).includes("sheet")) return null;
   const notice = params.get("link") === "1"
     ? "This Google account matches an existing email. Sign in with your current method to link it."
     : params.get("error") === "demo"
       ? "That Google account cannot be used here."
+    : params.get("error") === "cancelled"
+      ? "Google sign-in was cancelled."
       : params.get("error") === "google"
         ? "We couldn't sign you in. Please try again."
         : null;
 
   function close() {
-    if (window.history.length > 1) {
-      router.back();
-      return;
-    }
-    router.replace("/");
+    router.replace(withoutAuthMode(`${pathname}?${params.toString()}`));
   }
 
   function switchMode(next: "login" | "signup") {
-    const query = new URLSearchParams(params.toString());
-    query.set("auth", next);
-    query.delete("profile");
-    router.replace(`${pathname}?${query.toString()}`);
+    router.replace(withAuthMode(`${pathname}?${params.toString()}`, next));
   }
 
   return (
@@ -47,7 +42,7 @@ export function AuthOverlay({ flags }: { flags: Flags }) {
       flags={flags}
       open
       notice={notice}
-      initialStep={params.get("profile") === "1" ? "profile" : params.get("passkey") === "1" ? "passkey" : undefined}
+      initialStep={params.get("passkey") === "1" ? "passkey" : params.get("google") === "1" ? "google" : params.get("profile") === "1" ? "profile" : undefined}
       onClose={close}
       onSwitchMode={switchMode}
     />

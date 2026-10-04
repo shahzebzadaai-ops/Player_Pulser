@@ -5,7 +5,7 @@ import { authFlags } from "@/domain/auth-flags";
 import { googleAccountDecision, normalizeEmail } from "@/domain/identities";
 import { linkVisitor, recordEvent } from "./attribution";
 import { attachIdentity } from "./identities";
-import { saveGoogleLink } from "./intent-cookie";
+import { currentIntent, saveGoogleLink, saveGoogleSignup, clearGoogleSignup, currentGoogleSignup } from "./intent-cookie";
 import { grantWelcomeBonus } from "./bonus";
 import { withUserLock } from "./ledger";
 import { prisma } from "./prisma";
@@ -13,6 +13,11 @@ import { assignTemporaryUsername } from "./usernames";
 import { getSettings } from "./settings";
 import { json, setSessionCookie } from "./http";
 import { PASSKEY_SKIP_COOKIE, passkeyOfferEligible } from "./passkeys";
+import { AGE_CONSENT_MESSAGE, ageConsentAccepted } from "@/domain/registration";
+import { normalizeUsername } from "@/domain/username";
+import { AppError } from "@/domain/errors";
+import { rememberReferral } from "./referrals";
+import { recordPolicyAcceptance } from "./consent";
 
 const STATE_COOKIE = "pp_google_state";
 
@@ -106,7 +111,10 @@ export async function finishGoogle(request: Request): Promise<Response> {
   const jar = await cookies();
   const expected = jar.get(STATE_COOKIE)?.value;
   jar.delete(STATE_COOKIE);
-  if (!code || !state || !expected || state !== expected) return Response.redirect(loginError);
+  if (!code || !state || !expected || state !== expected) {
+    if (url.searchParams.get("error")) return Response.redirect(await signupReturn(request, "cancelled"));
+    return Response.redirect(loginError);
+  }
   const profile = await profileFromCode(request, code);
   if (!profile) return Response.redirect(loginError);
   const bySubject = await prisma.authIdentity.findUnique({
@@ -138,50 +146,110 @@ export async function finishGoogle(request: Request): Promise<Response> {
     const offerPasskey = jar.get(PASSKEY_SKIP_COOKIE)?.value !== "1" && await passkeyOfferEligible(bySubject.userId);
     return Response.redirect(new URL(offerPasskey ? "/?auth=login&passkey=1" : "/continue", request.url));
   }
+  if (!profile.email) return Response.redirect(loginError);
+  await saveGoogleSignup({
+    sub: profile.sub,
+    email: profile.email,
+    givenName: profile.givenName,
+    familyName: profile.familyName,
+    name: profile.name,
+    picture: profile.picture,
+  });
+  return Response.redirect(await signupReturn(request, "google"));
+}
+
+async function signupReturn(request: Request, kind: "google" | "cancelled"): Promise<URL> {
+  const intent = await currentIntent();
+  const path = intent?.type === "BUY" ? `/players/${intent.slug}` : "/";
+  const url = new URL(path, request.url);
+  url.searchParams.set("auth", "signup");
+  if (kind === "google") url.searchParams.set("google", "1");
+  if (kind === "cancelled") url.searchParams.set("error", "cancelled");
+  return url;
+}
+
+export async function completeGoogleSignup(input: {
+  givenName: string;
+  familyName: string;
+  username?: string;
+  referralCode?: string;
+  acceptedAge: boolean;
+  acceptedTerms: boolean;
+  ip?: string | null;
+  userAgent?: string | null;
+  visitorId?: string | null;
+}): Promise<{ userId: string }> {
+  if (!ageConsentAccepted(input)) throw new AppError("CONSENT", AGE_CONSENT_MESSAGE, 400);
+  const givenName = input.givenName.trim();
+  const familyName = input.familyName.trim();
+  if (!givenName || !familyName) throw new AppError("INVALID", "Enter your first and last name.", 400);
+  const username = input.username?.trim() ? normalizeUsername(input.username) : null;
+  if (input.username?.trim() && !username) throw new AppError("INVALID", "Use 3–24 letters, numbers, dots, or underscores.", 400);
+  const pending = await currentGoogleSignup();
+  if (!pending?.email) throw new AppError("INVALID", "Google sign-in expired. Try again.", 400);
+  const bySubject = await prisma.authIdentity.findUnique({
+    where: { provider_providerAccountId: { provider: "GOOGLE", providerAccountId: pending.sub } },
+    select: { userId: true },
+  });
+  const byEmail = await prisma.user.findUnique({ where: { email: pending.email }, select: { id: true } });
+  const decision = googleAccountDecision({
+    email: pending.email,
+    existingBySubjectUserId: bySubject?.userId ?? null,
+    existingByEmailUserId: byEmail?.id ?? null,
+  });
+  if (decision === "REJECTED") throw new AppError("INVALID", "That Google account cannot be used here.", 400);
+  if (decision === "LINK_REQUIRED") {
+    await saveGoogleLink(pending);
+    await clearGoogleSignup();
+    throw new AppError("EXISTS", "This Google account matches an existing email. Sign in with your current method to link it.", 409);
+  }
+  if (decision === "SIGN_IN" && bySubject) {
+    await clearGoogleSignup();
+    return { userId: bySubject.userId };
+  }
   const settings = await getSettings();
-  const displayName = profile.name || [profile.givenName, profile.familyName].filter(Boolean).join(" ") || "Cricket Fan";
   try {
-    const user = await withUserLock(`google:${profile.sub}`, async (tx) => {
+    const user = await withUserLock(`google:${pending.sub}`, async (tx) => {
+      if (username) {
+        const taken = await tx.user.findFirst({ where: { usernameNormalized: username }, select: { id: true } });
+        if (taken) throw new AppError("EXISTS", "That username is already taken.", 409);
+      }
       const created = await tx.user.create({
         data: {
-          email: profile.email,
-          displayName,
-          givenName: profile.givenName,
-          familyName: profile.familyName,
-          avatarUrl: profile.picture,
+          email: pending.email,
+          displayName: [givenName, familyName].join(" "),
+          givenName,
+          familyName,
+          ...(username ? { username, usernameNormalized: username, usernameCustomized: true } : {}),
+          avatarUrl: pending.picture,
           role: "CUSTOMER",
           signupMethod: "GOOGLE",
-          emailVerifiedAt: profile.email ? new Date() : null,
-          accountStatus: profile.email ? "CONTACT_VERIFIED" : "REGISTERED",
+          emailVerifiedAt: new Date(),
+          accountStatus: "PROFILE_COMPLETE",
         },
       });
       await attachIdentity(tx, {
         userId: created.id,
         provider: "GOOGLE",
-        providerAccountId: profile.sub,
-        normalizedEmail: profile.email,
+        providerAccountId: pending.sub,
+        normalizedEmail: pending.email,
         verifiedAt: new Date(),
       });
+      await recordPolicyAcceptance(tx, { userId: created.id, ip: input.ip, userAgent: input.userAgent });
+      await rememberReferral(tx, created.id, input.referralCode);
       await grantWelcomeBonus(tx, created.id, settings);
-      await assignTemporaryUsername(tx, created.id);
+      if (!username) await assignTemporaryUsername(tx, created.id);
       return created;
     });
-    await setSessionCookie(user.id);
-    await linkVisitor(user.id, jar.get("pp_vid")?.value ?? null, "signup");
+    await clearGoogleSignup();
     await recordEvent({ eventName: "signup_completed", dedupeKey: `signup-google:${user.id}`, userId: user.id });
-    return Response.redirect(new URL("/?auth=signup&profile=1", request.url));
+    return { userId: user.id };
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002" && profile.email) {
-      await saveGoogleLink({
-        sub: profile.sub,
-        email: profile.email,
-        givenName: profile.givenName,
-        familyName: profile.familyName,
-        name: profile.name,
-        picture: profile.picture,
-      });
-      return Response.redirect(new URL("/login?link=1", request.url));
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      await saveGoogleLink(pending);
+      await clearGoogleSignup();
+      throw new AppError("EXISTS", "This Google account matches an existing email. Sign in with your current method to link it.", 409);
     }
-    return Response.redirect(loginError);
+    throw error;
   }
 }

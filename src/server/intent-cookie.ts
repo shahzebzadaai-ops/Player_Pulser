@@ -40,3 +40,20 @@ export async function clearGoogleLink(): Promise<void> {
   const jar = await cookies();
   jar.delete(AUTH_LINK_COOKIE);
 }
+
+const SIGNUP_COOKIE = "pp_google_signup";
+
+export async function saveGoogleSignup(link: GoogleLink): Promise<void> {
+  const jar = await cookies();
+  jar.set(SIGNUP_COOKIE, signGoogleLink(link, authSecret()), options);
+}
+
+export async function currentGoogleSignup(): Promise<GoogleLink | null> {
+  const jar = await cookies();
+  return readGoogleLink(jar.get(SIGNUP_COOKIE)?.value, authSecret());
+}
+
+export async function clearGoogleSignup(): Promise<void> {
+  const jar = await cookies();
+  jar.delete(SIGNUP_COOKIE);
+}

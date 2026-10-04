@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
+import { directSignupTarget } from "@/domain/auth-surface";
 import { getCurrentUser } from "@/server/current-user";
 
 export default async function SignupPage() {
   const user = await getCurrentUser();
-  if (user) redirect("/continue");
-  redirect("/?auth=signup");
+  redirect(directSignupTarget(Boolean(user)));
 }

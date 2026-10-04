@@ -3,6 +3,7 @@ import type { User } from "@prisma/client";
 import { AppError } from "@/domain/errors";
 import { authFlags } from "@/domain/auth-flags";
 import { otpAttemptAllowed, otpResendAllowed } from "@/domain/growth";
+import { AGE_CONSENT_MESSAGE, ageConsentAccepted } from "@/domain/registration";
 import { normalizeEmail } from "@/domain/identities";
 import { INVESTOR_DEMO_EMAIL, isInvestorDemoIdentity } from "@/domain/investor-demo";
 import { devAuthAllowed } from "@/domain/phone";
@@ -87,7 +88,7 @@ export async function requestEmailOtp(emailInput: string): Promise<{ challengeId
 export async function verifyEmailOtp(
   challengeId: string,
   code: string,
-  consent?: { accepted: boolean; displayName?: string; ip?: string | null; userAgent?: string | null; visitorId?: string | null; sessionUserId?: string | null },
+  consent?: { accepted: boolean; acceptedAge?: boolean; displayName?: string; givenName?: string; familyName?: string; ip?: string | null; userAgent?: string | null; visitorId?: string | null; sessionUserId?: string | null },
 ): Promise<User> {
   if (!authFlags().emailOtpEnabled && !devAuthAllowed()) throw new AppError("NOT_FOUND", "Not found.", 404);
   const challenge = await prisma.otpChallenge.findUnique({ where: { id: challengeId } });
@@ -160,7 +161,9 @@ export async function verifyEmailOtp(
     }
     return existing;
   }
-  if (!consent?.accepted) throw new AppError("CONSENT", "Agree to the Terms of Use and Privacy Policy.", 400);
+  if (!consent || !ageConsentAccepted({ acceptedAge: consent.acceptedAge, acceptedTerms: consent.accepted })) {
+    throw new AppError("CONSENT", AGE_CONSENT_MESSAGE, 400);
+  }
   const settings = await getSettings();
   return withUserLock(`otp:${email}`, async (tx) => {
     const again = await tx.user.findUnique({ where: { email } });
@@ -168,7 +171,9 @@ export async function verifyEmailOtp(
     const user = await tx.user.create({
       data: {
         email,
-        displayName: consent.displayName?.trim() || "Cricket Fan",
+        givenName: consent.givenName?.trim() || null,
+        familyName: consent.familyName?.trim() || null,
+        displayName: [consent.givenName, consent.familyName].filter(Boolean).join(" ").trim() || consent.displayName?.trim() || "Cricket Fan",
         role: "CUSTOMER",
         signupMethod: "EMAIL",
         emailVerifiedAt: new Date(),

@@ -12,7 +12,10 @@ const schema = z.object({
   challengeId: z.string(),
   code: z.string().regex(/^\d{6}$/, "Enter the 6 digit code."),
   acceptedTerms: z.boolean().optional(),
+  acceptedAge: z.boolean().optional(),
   displayName: z.string().max(40).optional(),
+  givenName: z.string().max(40).optional(),
+  familyName: z.string().max(40).optional(),
 });
 
 export async function POST(request: Request) {
@@ -25,7 +28,10 @@ export async function POST(request: Request) {
     const sessionUser = await actor(request);
     const consent = {
       accepted: body.acceptedTerms === true,
+      acceptedAge: body.acceptedAge === true,
       displayName: body.displayName,
+      givenName: body.givenName,
+      familyName: body.familyName,
       ip: clientIp(request),
       userAgent: request.headers.get("user-agent"),
       visitorId: (await cookies()).get("pp_vid")?.value ?? null,

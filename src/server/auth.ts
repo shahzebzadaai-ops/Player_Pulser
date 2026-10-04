@@ -14,7 +14,10 @@ import { withUserLock } from "./ledger";
 import { deliverOtp } from "./otp-provider";
 import { assertDurableRate } from "./rate-limit";
 import { getSettings } from "./settings";
+import { rememberReferral } from "./referrals";
 import { assignTemporaryUsername } from "./usernames";
+import { normalizeUsername } from "@/domain/username";
+import { AGE_CONSENT_MESSAGE, ageConsentAccepted } from "@/domain/registration";
 
 const scrypt = promisify(scryptCallback);
 export const SESSION_COOKIE = "pp_session";
@@ -95,7 +98,12 @@ export async function signup(input: {
   email?: string;
   password: string;
   displayName?: string;
+  givenName?: string;
+  familyName?: string;
+  username?: string;
+  referralCode?: string;
   acceptedTerms?: boolean;
+  acceptedAge?: boolean;
   ip?: string | null;
   userAgent?: string | null;
   visitorId?: string | null;
@@ -117,20 +125,38 @@ export async function signup(input: {
   if (email && (await prisma.user.findUnique({ where: { email } }))) {
     throw new AppError("EXISTS", "An account with this email already exists.", 409);
   }
+  if (input.acceptedAge !== undefined && !ageConsentAccepted(input)) {
+    throw new AppError("CONSENT", AGE_CONSENT_MESSAGE, 400);
+  }
+  const givenName = input.givenName?.trim() || null;
+  const familyName = input.familyName?.trim() || null;
+  const username = input.username?.trim() ? normalizeUsername(input.username) : null;
+  if (input.username?.trim() && !username) {
+    throw new AppError("INVALID", "Use 3–24 letters, numbers, dots, or underscores.", 400);
+  }
   const passwordHash = await hashPassword(input.password);
   const settings = await getSettings();
   try {
     return await prisma.$transaction(async (tx) => {
+      if (username) {
+        const taken = await tx.user.findFirst({ where: { usernameNormalized: username }, select: { id: true } });
+        if (taken) throw new AppError("EXISTS", "That username is already taken.", 409);
+      }
       const user = await tx.user.create({
         data: {
           phone,
           email,
-          displayName: input.displayName?.trim() || "Cricket Fan",
+          givenName,
+          familyName,
+          displayName: [givenName, familyName].filter(Boolean).join(" ") || input.displayName?.trim() || "Cricket Fan",
+          ...(username ? { username, usernameNormalized: username, usernameCustomized: true } : {}),
           passwordHash,
           role: "CUSTOMER",
           signupMethod: "PASSWORD",
+          accountStatus: givenName && familyName ? "PROFILE_COMPLETE" : "REGISTERED",
         },
       });
+      await rememberReferral(tx, user.id, input.referralCode);
       await attachIdentity(tx, {
         userId: user.id,
         provider: phone ? "PHONE" : "EMAIL",
@@ -143,7 +169,7 @@ export async function signup(input: {
         await recordPolicyAcceptance(tx, { userId: user.id, ip: input.ip, userAgent: input.userAgent });
       }
       await grantWelcomeBonus(tx, user.id, settings, await sharedWelcomeSignals(tx, user.id, input.visitorId));
-      await assignTemporaryUsername(tx, user.id);
+      if (!username) await assignTemporaryUsername(tx, user.id);
       return user;
     });
   } catch (error) {
@@ -215,7 +241,7 @@ export async function requestDevOtp(phoneInput: string): Promise<{ challengeId: 
 export async function verifyDevOtp(
   challengeId: string,
   code: string,
-  consent?: { accepted: boolean; displayName?: string; ip?: string | null; userAgent?: string | null; visitorId?: string | null; sessionUserId?: string | null },
+  consent?: { accepted: boolean; acceptedAge?: boolean; displayName?: string; givenName?: string; familyName?: string; ip?: string | null; userAgent?: string | null; visitorId?: string | null; sessionUserId?: string | null },
   allowConfigured = false,
 ): Promise<User> {
   if (!devAuthAllowed() && !(allowConfigured && authFlags().phoneOtpEnabled)) throw new AppError("NOT_FOUND", "Not found.", 404);
@@ -288,7 +314,9 @@ export async function verifyDevOtp(
     }
     return existing;
   }
-  if (!consent?.accepted) throw new AppError("CONSENT", "Agree to the Terms of Use and Privacy Policy.", 400);
+  if (!consent || !ageConsentAccepted({ acceptedAge: consent.acceptedAge, acceptedTerms: consent.accepted })) {
+    throw new AppError("CONSENT", AGE_CONSENT_MESSAGE, 400);
+  }
   const settings = await getSettings();
   return withUserLock(`otp:${phone}`, async (tx) => {
     const again = await tx.user.findUnique({ where: { phone } });
@@ -296,7 +324,9 @@ export async function verifyDevOtp(
     const user = await tx.user.create({
       data: {
         phone,
-        displayName: consent.displayName?.trim() || "Cricket Fan",
+        givenName: consent.givenName?.trim() || null,
+        familyName: consent.familyName?.trim() || null,
+        displayName: [consent.givenName, consent.familyName].filter(Boolean).join(" ").trim() || consent.displayName?.trim() || "Cricket Fan",
         role: "CUSTOMER",
         signupMethod: "PHONE",
         phoneVerifiedAt: new Date(),

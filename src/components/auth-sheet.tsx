@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { browserSupportsWebAuthn, platformAuthenticatorIsAvailable, startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { visibleAuthParts } from "@/domain/auth-surface";
 import { normalizeInternationalPhone } from "@/domain/identities";
 import { passkeyButtonVisible } from "@/domain/passkey";
 import { Logo } from "./visuals";
+import { GoogleFinishForm, SignupForm } from "./signup-form";
 
 type Flags = {
   googleEnabled: boolean;
@@ -14,7 +16,7 @@ type Flags = {
   legacyPasswordEnabled: boolean;
 };
 
-type Step = "methods" | "phone" | "email" | "code" | "profile" | "password" | "passkey";
+type Step = "register" | "google" | "methods" | "phone" | "email" | "code" | "profile" | "password" | "passkey";
 
 export function AuthSheet({
   mode,
@@ -34,9 +36,9 @@ export function AuthSheet({
   initialStep?: Step;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const dismissing = useRef(false);
+  const ignoreClose = useRef(true);
   const modern = flags.googleEnabled || flags.phoneOtpEnabled || flags.emailOtpEnabled;
-  const [step, setStep] = useState<Step>(initialStep ?? (modern ? "methods" : "password"));
+  const [step, setStep] = useState<Step>(initialStep ?? (mode === "signup" ? "register" : modern ? "methods" : "password"));
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [channel, setChannel] = useState<"PHONE" | "EMAIL">("PHONE");
@@ -56,17 +58,23 @@ export function AuthSheet({
   const [contact, setContact] = useState<"email" | "phone">("email");
   const [passkeyReady, setPasskeyReady] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState("");
   const inputs = useRef<Array<HTMLInputElement | null>>([]);
   const usernameTimer = useRef<number>(0);
 
   useEffect(() => {
     const node = dialog.current;
-    if (!node) return;
-    dismissing.current = false;
-    if (open && !node.open) node.showModal();
+    if (!node || !open) return;
+    ignoreClose.current = true;
+    if (!node.open) node.showModal();
+    const allowUserClose = window.setTimeout(() => {
+      ignoreClose.current = false;
+    }, 0);
     return () => {
-      dismissing.current = true;
-      if (node.open) node.close();
+      window.clearTimeout(allowUserClose);
+      ignoreClose.current = true;
+      if (!node.open) return;
+      node.close();
     };
   }, [open]);
 
@@ -147,7 +155,15 @@ export function AuthSheet({
     const response = await fetch("/api/auth/otp/verify", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ challengeId, code, acceptedTerms: true, displayName: givenName || undefined }),
+        body: JSON.stringify({
+          challengeId,
+          code,
+          acceptedTerms: agreed,
+          acceptedAge: agreed,
+          displayName: [givenName, familyName].filter(Boolean).join(" ") || undefined,
+          givenName,
+          familyName,
+        }),
     });
     const body = (await response.json()) as { error?: { message: string }; needsProfile?: boolean };
     setPending(false);
@@ -193,7 +209,7 @@ export function AuthSheet({
       headers: { "content-type": "application/json" },
       body: JSON.stringify(
         mode === "signup"
-          ? { method: identifier.includes("@") ? "email" : "phone", phone: identifier, email: identifier, password, displayName: "Cricket Fan", acceptedTerms: agreed }
+          ? { method: identifier.includes("@") ? "email" : "phone", phone: identifier, email: identifier, password, displayName: [givenName, familyName].filter(Boolean).join(" ") || "Cricket Fan", givenName, familyName, acceptedTerms: agreed, acceptedAge: agreed }
           : { identifier, password },
       ),
     });
@@ -312,9 +328,24 @@ export function AuthSheet({
     window.location.assign("/continue");
   }
 
+  useEffect(() => {
+    if (step !== "google") return;
+    void fetch("/api/auth/google/pending").then(async (response) => {
+      if (!response.ok) return;
+      const body = (await response.json()) as { pending?: boolean; email?: string; givenName?: string | null; familyName?: string | null };
+      if (!body.pending) {
+        setMessage("Google sign-in expired. Start again.");
+        return;
+      }
+      setGoogleEmail(body.email ?? "");
+      setGivenName((current) => current || body.givenName || "");
+      setFamilyName((current) => current || body.familyName || "");
+    }).catch(() => setMessage("Google sign-in expired. Start again."));
+  }, [step]);
+
   if (!visibleAuthParts(open).includes("sheet")) return null;
-  const title = step === "passkey" ? "Sign in faster next time" : step === "profile" ? "Complete your PlayerPulser profile" : mode === "signup" ? "Create your PlayerPulser account" : "Sign in";
-  const copy = step === "passkey" ? "Use Face ID, Touch ID, or your device unlock on this phone or computer." : step === "profile" ? "Let's finish setting up your PlayerPulser account." : "Trade the players you follow.";
+  const title = step === "passkey" ? "Sign in faster next time" : step === "google" ? "Finish Google sign-up" : step === "profile" ? "Complete your PlayerPulser profile" : mode === "signup" ? "Create an account" : "Sign in";
+  const copy = step === "passkey" ? "Use Face ID, Touch ID, or your device unlock on this phone or computer." : step === "google" ? "Your declaration is recorded with the account. It is not a verified age check." : step === "profile" ? "Let's finish setting up your PlayerPulser account." : mode === "signup" ? "Welcome to PlayerPulser" : "Trade the players you follow.";
 
   return (
     <dialog
@@ -322,17 +353,18 @@ export function AuthSheet({
       className="auth-dialog"
       aria-labelledby="auth-sheet-title"
       onCancel={(event) => {
-        if (!onClose) return;
         event.preventDefault();
+        if (ignoreClose.current || !onClose) return;
         onClose();
       }}
       onClose={() => {
-        if (dismissing.current) return;
-        onClose?.();
+        const node = dialog.current;
+        if (ignoreClose.current || !node || !open || node.open) return;
+        node.showModal();
       }}
     >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        {step !== "methods" && step !== "passkey" && !(step === "password" && !modern) ? (
+      <div className="auth-sheet-bar">
+        {step !== "methods" && step !== "register" && step !== "google" && step !== "passkey" && !(step === "password" && !modern) ? (
           <button type="button" className="min-h-11 min-w-11 rounded-full bg-pitch text-sm" aria-label="Back" onClick={() => setStep("methods")}>
             Back
           </button>
@@ -351,9 +383,84 @@ export function AuthSheet({
           Close
         </button>
       </div>
+      <div className="auth-sheet-body">
       <h2 id="auth-sheet-title" className="text-2xl font-bold">{title}</h2>
       <p className="mt-2 text-sm text-muted">{copy}</p>
       <p className="mt-3 min-h-5 text-sm text-loss" aria-live="polite">{message}</p>
+      {step === "register" ? (
+        <SignupForm
+          googleEnabled={flags.googleEnabled}
+          phoneEnabled={flags.phoneOtpEnabled}
+          passkeyReady={passkeyReady}
+          pending={pending}
+          onCreate={async (values) => {
+            setPending(true);
+            setMessage(null);
+            setGivenName(values.givenName);
+            setFamilyName(values.familyName);
+            setAgreed(true);
+            const response = await fetch("/api/auth/signup", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                method: "email",
+                email: values.email,
+                password: values.password,
+                givenName: values.givenName.trim(),
+                familyName: values.familyName.trim(),
+                username: values.username.trim() || undefined,
+                referralCode: values.referral.trim() || undefined,
+                acceptedAge: true,
+                acceptedTerms: true,
+              }),
+            });
+            const body = (await response.json()) as { error?: { message: string } };
+            setPending(false);
+            if (!response.ok) {
+              setMessage(body.error?.message ?? "We couldn't create that account.");
+              return;
+            }
+            await offerPasskeyOrContinue();
+          }}
+          onPhone={(phoneNumber) => {
+            setAgreed(true);
+            void requestCode("PHONE", phoneNumber);
+          }}
+          onPasskey={() => void signInWithPasskey()}
+          onLogin={() => onSwitchMode?.("login")}
+        />
+      ) : null}
+      {step === "google" ? (
+        <GoogleFinishForm
+          email={googleEmail}
+          initialGivenName={givenName}
+          initialFamilyName={familyName}
+          pending={pending}
+          onSubmit={async (values) => {
+            setPending(true);
+            setMessage(null);
+            const response = await fetch("/api/auth/google/complete", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                givenName: values.givenName.trim(),
+                familyName: values.familyName.trim(),
+                username: values.username.trim() || undefined,
+                referralCode: values.referral.trim() || undefined,
+                acceptedAge: true,
+                acceptedTerms: true,
+              }),
+            });
+            const body = (await response.json()) as { error?: { message: string } };
+            setPending(false);
+            if (!response.ok) {
+              setMessage(body.error?.message ?? "We couldn't finish Google sign-up.");
+              return;
+            }
+            await offerPasskeyOrContinue();
+          }}
+        />
+      ) : null}
       {step === "methods" ? (
         <div className="mt-2 grid gap-3">
           {mode === "login" && flags.googleEnabled ? (
@@ -535,6 +642,7 @@ export function AuthSheet({
           <button type="button" className="min-h-11 text-sm text-india" onClick={() => void skipPasskey()}>Not now</button>
         </div>
       ) : null}
+      </div>
     </dialog>
   );
 }
@@ -554,7 +662,9 @@ function Consent({ agreed, onChange }: { agreed: boolean; onChange: (value: bool
   return (
     <label className="flex min-h-11 items-start gap-3 text-sm">
       <input className="mt-1" type="checkbox" checked={agreed} onChange={(event) => onChange(event.target.checked)} />
-      <span>I agree to the Terms of Use and Privacy Policy.</span>
+      <span>
+        I am 18 or older and agree to the <Link className="text-india underline" href="/terms">Terms of Use</Link> and <Link className="text-india underline" href="/privacy">Privacy Policy</Link>.
+      </span>
     </label>
   );
 }

@@ -53,7 +53,7 @@ test("a new OTP supersedes the previous challenge", async () => {
   await prisma.otpChallenge.update({ where: { id: first.challengeId }, data: { createdAt: new Date(Date.now() - 31_000) } });
   const second = await requestDevOtp(national);
   await expect(verifyDevOtp(first.challengeId, first.devCode, { accepted: true })).rejects.toMatchObject({ code: "INVALID_OTP" });
-  const user = await verifyDevOtp(second.challengeId, second.devCode, { accepted: true, displayName: "DEV_TEST otp" });
+  const user = await verifyDevOtp(second.challengeId, second.devCode, { accepted: true, acceptedAge: true, displayName: "DEV_TEST otp" });
   await expect(verifyDevOtp(second.challengeId, second.devCode, { accepted: true })).rejects.toMatchObject({ code: "INVALID_OTP" });
   expect(user.displayName).toBe("DEV_TEST otp");
 });
@@ -100,7 +100,7 @@ test("development visitor completes signup, bonus, deposit, and first trade once
   await recordEvent({ eventName: "SIGNUP_PROMPT_SHOWN", dedupeKey: `prompt:${national}` });
   await recordEvent({ eventName: "SIGNUP_STARTED", dedupeKey: `start:${national}` });
   const otp = await requestDevOtp(national);
-  const user = await verifyDevOtp(otp.challengeId, otp.devCode, { accepted: true, displayName: "DEV_TEST funnel", ip: "127.0.0.1", userAgent: "vitest" });
+  const user = await verifyDevOtp(otp.challengeId, otp.devCode, { accepted: true, acceptedAge: true, displayName: "DEV_TEST funnel", ip: "127.0.0.1", userAgent: "vitest" });
   expect(await accountBalance(prisma, user.id, "USER_BONUS")).toBe(20_000n);
   const settings = await getSettings();
   const repeat = await prisma.$transaction((tx) => grantWelcomeBonus(tx, user.id, settings));

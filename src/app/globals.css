@@ -289,6 +289,8 @@ select {
 }
 
 .auth-dialog {
+  display: flex;
+  flex-direction: column;
   width: min(100%, 28rem);
   max-height: min(92dvh, 40rem);
   margin: auto;
@@ -296,8 +298,40 @@ select {
   border-radius: 1.5rem;
   background: #122033;
   color: inherit;
-  padding: 1.25rem;
+  padding: 0;
+  overflow: hidden;
+}
+
+.auth-sheet-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 0.5rem;
+  background: #122033;
+}
+
+.auth-sheet-body {
+  min-height: 0;
   overflow: auto;
+  padding: 0.25rem 1.25rem 1.25rem;
+}
+
+.auth-input {
+  margin-top: 0.25rem;
+  min-height: 3rem;
+  width: 100%;
+  border-radius: 1rem;
+  background: #07111f;
+  padding: 0 0.75rem;
+  outline: none;
+}
+
+.auth-input:focus-visible,
+.auth-dialog button:focus-visible,
+.auth-dialog a:focus-visible,
+.auth-dialog input:focus-visible {
+  outline: 2px solid #5b9bff;
+  outline-offset: 2px;
 }
 
 .auth-dialog:not([open]) {
@@ -313,6 +347,7 @@ select {
   .auth-dialog {
     width: 100%;
     max-width: 100%;
+    max-height: 92dvh;
     margin: auto 0 0;
     border-radius: 1.5rem 1.5rem 0 0;
   }

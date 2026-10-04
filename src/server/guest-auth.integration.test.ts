@@ -53,7 +53,7 @@ test("the investor demo email cannot sign up or take an email identity", async (
 test("email otp creates one account and one bonus", async () => {
   const email = `fan-${randomUUID().slice(0, 8)}@example.com`;
   const issued = await requestEmailOtp(email);
-  const user = await verifyEmailOtp(issued.challengeId, issued.devCode, { accepted: true, displayName: "Email Fan" });
+  const user = await verifyEmailOtp(issued.challengeId, issued.devCode, { accepted: true, acceptedAge: true, displayName: "Email Fan" });
   expect(user.signupMethod).toBe("EMAIL");
   expect(user.emailVerifiedAt).not.toBeNull();
   expect(await prisma.authIdentity.count({ where: { userId: user.id, provider: "EMAIL" } })).toBe(1);
