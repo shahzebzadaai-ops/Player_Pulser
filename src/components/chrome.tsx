@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { CUSTOMER_NAV } from "@/domain/customer-nav";
+import { BittuFigure } from "./bittu-figure";
 import { ShowcaseMark, StreamStatus } from "./price-stream";
 
 export function LogoutButton() {
@@ -98,11 +99,14 @@ export function ConnectionState() {
   }, []);
   if (!offline && !stale) return null;
   return (
-    <p role="status" className="mx-4 mt-3 rounded-xl bg-loss/15 px-3 py-2 text-sm text-ink">
-      {offline
-        ? "You are offline. Buys, sells, deposits, and withdrawals stay disabled until the connection returns."
-        : "The price feed is stale. New trades are paused until fresh prices arrive."}
-    </p>
+    <div role="status" className="mx-4 mt-3 flex items-center gap-2 rounded-xl bg-loss/15 px-3 py-2 text-sm text-ink">
+      <BittuFigure pose={offline ? "shrug" : "pause"} className="h-12 w-auto shrink-0" />
+      <p>
+        {offline
+          ? "You are offline. Buys, sells, deposits, and withdrawals stay disabled until the connection returns."
+          : "The price feed is stale. New trades are paused until fresh prices arrive."}
+      </p>
+    </div>
   );
 }
 

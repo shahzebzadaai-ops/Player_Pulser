@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BittuFigure, BittuNote } from "@/components/bittu-figure";
 import { ClearIntent } from "@/components/clear-intent";
 import { GuestTrade } from "@/components/guest-trade";
 import { HowPricesWork } from "@/components/how-prices-work";
@@ -98,6 +99,9 @@ export default async function PlayerPage({
         <PriceChart playerId={player.id} initial={history.points} />
         {history.note ? <p className="mt-2 text-xs text-muted">{history.note}</p> : null}
         <p className="mt-2 text-xs text-muted">The chart shows the quoted price.</p>
+        <BittuNote pose="pointUp" className="mt-2">
+          The quote stays in the chart. Buy and sell prices already include the spread.
+        </BittuNote>
       </div>
       {player.pulse ? (
         <PulsePanel
@@ -140,7 +144,10 @@ export default async function PlayerPage({
         ) : features.liveTradingEnabled ? (
           <GuestTrade playerId={player.id} slug={player.slug} buyPaise={player.buyPaise} sellPaise={player.sellPaise} />
         ) : (
-          <p className="rounded-2xl bg-card p-4 text-sm">Trading is temporarily unavailable.</p>
+          <div className="flex items-center gap-3 rounded-2xl bg-card p-4 text-sm">
+            <BittuFigure pose="pause" className="h-16 w-auto shrink-0" />
+            <p>Trading is temporarily unavailable. Positions and balances stay where they are.</p>
+          </div>
         )}
       </div>
       <section className="mt-4 rounded-3xl bg-card p-4">

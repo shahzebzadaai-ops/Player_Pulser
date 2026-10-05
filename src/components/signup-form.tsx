@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { normalizeEmail, normalizeInternationalPhone } from "@/domain/identities";
 import { registrationIssues } from "@/domain/registration";
+import { BittuFigure } from "./bittu-figure";
 
 export function WelcomeAuth({
   pending,
@@ -53,8 +54,13 @@ export function WelcomeAuth({
 
   return (
     <form className="grid gap-3" onSubmit={(event) => void continueEmail(event)} noValidate>
-      <h2 id="auth-sheet-title" className="text-2xl font-bold">Welcome to PlayerPulser</h2>
-      <p className="text-sm text-muted">Log in or create an account to trade the players you follow.</p>
+      <div className="flex items-center gap-3">
+        <BittuFigure pose="welcome" className="h-16 w-auto shrink-0" />
+        <div>
+          <h2 id="auth-sheet-title" className="text-2xl font-bold">Welcome to PlayerPulser</h2>
+          <p className="mt-1 text-sm text-muted">Log in or create an account to trade the players you follow.</p>
+        </div>
+      </div>
       <button type="button" className="btn-secondary w-full" onClick={onGoogle}>
         <GoogleMark /> Continue with Google
       </button>

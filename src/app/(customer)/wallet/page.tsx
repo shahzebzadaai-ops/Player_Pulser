@@ -1,4 +1,5 @@
 import { BannerSlot } from "@/components/banner-slot";
+import { BittuFigure } from "@/components/bittu-figure";
 import { WalletPanel } from "@/components/wallet-panel";
 import { isInvestorDemoIdentity } from "@/domain/investor-demo";
 import { formatPaise, formatSignedPaise } from "@/domain/money";
@@ -30,7 +31,10 @@ export default async function WalletPage() {
         <Balance label="Bonus proceeds" value={formatPaise(wallet.proceedsPaise)} />
         <Balance label="Withdrawal hold" value={formatPaise(wallet.holdPaise)} />
       </section>
-      <p className="mt-3 text-xs text-muted">Withdrawable cash is the cash balance only. Bonus and bonus proceeds are not added into that figure.</p>
+      <div className="mt-3 flex items-center gap-3">
+        <BittuFigure pose="balance" className="h-16 w-auto shrink-0" />
+        <p className="text-xs text-muted">Cash is the balance that can be withdrawn. Bonus and bonus proceeds stay separate and are not added into withdrawable cash.</p>
+      </div>
       <div className="mt-4">
         <WalletPanel
         cashPaise={wallet.cashPaise}

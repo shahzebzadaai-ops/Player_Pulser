@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatPaise } from "@/domain/money";
+import { BittuFigure } from "./bittu-figure";
 
 export function WalletPanel({
   cashPaise,
@@ -85,7 +86,12 @@ export function WalletPanel({
         <button disabled={pending} className="btn-primary mt-3 w-full">
           Deposit
         </button>
-      </form> : <p className="rounded-3xl border border-line bg-card p-4 text-sm">Deposits are temporarily unavailable.</p>}
+      </form> : (
+        <div className="flex items-center gap-3 rounded-3xl border border-line bg-card p-4 text-sm">
+          <BittuFigure pose="pause" className="h-14 w-auto shrink-0" />
+          <p>Deposits are temporarily unavailable.</p>
+        </div>
+      )}
       <section className="rounded-3xl border border-line bg-card p-4">
         <h2 className="font-semibold">Withdraw</h2>
         <p className="mt-1 text-sm text-muted">{withdrawal.message}</p>
@@ -102,13 +108,17 @@ export function WalletPanel({
             Withdraw 95%
           </button>
         ) : (
-          <p className="mt-3 text-sm">Withdrawals are temporarily unavailable.</p>
+          <div className="mt-3 flex items-center gap-3 text-sm">
+            <BittuFigure pose="pause" className="h-14 w-auto shrink-0" />
+            <p>Withdrawals are temporarily unavailable.</p>
+          </div>
         )}
       </section>
       {message ? (
-        <p role="status" className="text-sm">
-          {message}
-        </p>
+        <div role="status" className="flex items-start gap-2 text-sm">
+          <BittuFigure pose={/^(Deposit (settled|recorded)|Withdrawal submitted)/.test(message) ? "thumbsUp" : "shrug"} className="h-12 w-auto shrink-0" />
+          <p>{message}</p>
+        </div>
       ) : null}
     </div>
   );

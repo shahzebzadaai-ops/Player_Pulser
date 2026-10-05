@@ -25,7 +25,7 @@ export function TradeSheet({
   const [open, setOpen] = useState(initialOpen);
   return (
     <>
-      <div className="sticky bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-30 grid grid-cols-2 gap-3">
+      <div data-trade-bar className="sticky bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-30 grid grid-cols-2 gap-3">
         <button type="button" className="btn-primary press w-full flex-col" disabled={!buy} onClick={() => setOpen(true)}>
           Buy
           <span className="block whitespace-normal text-xs font-medium leading-tight">{buy ? <>@ <PriceFlash value={Number(buy)}>{formatPaise(buy)}</PriceFlash></> : "Loading current price…"}</span>

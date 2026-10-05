@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BittuFigure } from "@/components/bittu-figure";
 import { LivePortfolioTotals, LivePositionValue } from "@/components/price-display";
 import { LiveDot, Portrait, PriceText, Sparkline } from "@/components/visuals";
 import { formatPaise } from "@/domain/money";
@@ -18,9 +19,12 @@ export default async function PortfolioPage() {
         <LivePortfolioTotals positions={book.positions} />
       </section>
       {book.positions.length === 0 ? (
-        <p className="mt-4 rounded-2xl bg-card p-4 text-sm text-muted">
-          You do not hold any Pulsers. <Link className="text-india" href="/market">Open the market</Link>
-        </p>
+        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-card p-4">
+          <BittuFigure pose="helping" className="h-20 w-auto shrink-0" />
+          <p className="text-sm text-muted">
+            You do not hold any Pulsers yet. <Link className="text-india" href="/market">Explore players</Link>
+          </p>
+        </div>
       ) : (
         <ul className="mt-4 space-y-3">
           {book.positions.map((position) => {

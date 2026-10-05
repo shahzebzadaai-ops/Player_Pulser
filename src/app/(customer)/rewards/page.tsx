@@ -1,4 +1,5 @@
 import { BannerSlot } from "@/components/banner-slot";
+import { BittuFigure } from "@/components/bittu-figure";
 import { formatPaise } from "@/domain/money";
 import { requireCustomer } from "@/server/page-access";
 import { getFeatures } from "@/server/features";
@@ -17,7 +18,10 @@ export default async function RewardsPage() {
 
   return (
     <main className="px-4 pt-4">
-      <h1 className="text-2xl font-bold">Rewards</h1>
+      <div className="flex items-end justify-between gap-3">
+        <h1 className="text-2xl font-bold">Rewards</h1>
+        <BittuFigure pose="victory" className="h-20 w-auto shrink-0" />
+      </div>
       <BannerSlot placement="REWARDS" />
       {!features.loyaltyEnabled ? <p className="mt-4 text-sm">Loyalty is temporarily unavailable. Existing bonus records stay on this page.</p> : null}
       {!features.bonusSystemEnabled ? <p className="mt-4 text-sm text-muted">New bonus promotions are paused. Existing bonus balances stay available.</p> : null}

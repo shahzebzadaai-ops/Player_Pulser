@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BannerSlot } from "@/components/banner-slot";
+import { BittuHero } from "@/components/bittu-hero";
 import { LiveCard, MoverCard } from "@/components/cards";
 import { FeaturedPlayerHero } from "@/components/featured-player";
 import { MarketPulse } from "@/components/price-display";
@@ -60,19 +61,7 @@ export default async function LandingPage() {
       <MarketPulse />
       <PlayerTicker players={players} />
       <BannerSlot placement="LANDING_HERO" />
-      <section className="relative mt-6 overflow-hidden rounded-3xl bg-gradient-to-br from-[#12386f] to-[#07111f] p-5">
-        <p className="min-w-0 text-[clamp(1.65rem,7.4vw,2.15rem)] font-bold leading-[1.08]">
-          Trade the <span className="text-india">Pulse</span> of Cricket
-        </p>
-        <p className="mt-3 text-sm text-muted">Buy top Indian players. Track live prices. Sell at the right moment.</p>
-        <div className="mt-4 rounded-2xl bg-black/25 p-3">
-          <p className="text-sm font-semibold">₹200 welcome bonus</p>
-          <p className="mt-1 text-xs text-muted">Create an account to claim it, then deposit from ₹500 to trade.</p>
-          <Link href="/wallet/deposit" className="btn-primary mt-3 text-sm">
-            Deposit
-          </Link>
-        </div>
-      </section>
+      <BittuHero signedIn={Boolean(user)} />
       <ul className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
         <li className="rounded-full bg-card px-3 py-1">Live updates</li>
         <li className="rounded-full bg-card px-3 py-1">Real-time pricing</li>

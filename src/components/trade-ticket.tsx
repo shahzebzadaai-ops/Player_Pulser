@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatPaise } from "@/domain/money";
 import { resolveBuyFunding } from "@/domain/rules";
+import { BittuFigure } from "./bittu-figure";
 
 type Side = "BUY" | "SELL";
 
@@ -181,10 +182,17 @@ export function TradeTicket({
         </label>
       ) : null}
       <p className="mt-2 text-xs text-muted">Bonus cannot be used alone. At least 50% cash is required. The quote expires in 15 seconds.</p>
+      {pending ? (
+        <div className="mt-3 flex items-center gap-2 text-sm text-muted" role="status">
+          <BittuFigure pose="thoughtful" className="h-10 w-auto shrink-0" />
+          <p>Confirming the quote.</p>
+        </div>
+      ) : null}
       {message ? (
-        <p role="alert" className="mt-3 text-sm text-ink">
-          {message}
-        </p>
+        <div role="alert" className="mt-3 flex items-start gap-2 text-sm text-ink">
+          <BittuFigure pose={message.includes("completed") ? "thumbsUp" : "shrug"} className="h-12 w-auto shrink-0" />
+          <p>{message}</p>
+        </div>
       ) : null}
       {confirm ? (
         <div className="relative z-30 mt-3 rounded-2xl bg-pitch p-3 text-sm" role="alert">

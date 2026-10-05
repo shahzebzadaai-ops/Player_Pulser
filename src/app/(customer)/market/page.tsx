@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BannerSlot } from "@/components/banner-slot";
+import { BittuNote } from "@/components/bittu-figure";
 import { LiveCard, MoverCard, Notice, SectionHead } from "@/components/cards";
 import { MarketPulse } from "@/components/price-display";
 import { Logo, roleLabel } from "@/components/visuals";
@@ -75,6 +76,9 @@ export default async function MarketPage({
           Apply
         </button>
       </form>
+      <BittuNote pose="pointRight" className="mt-4">
+        Quotes stay on the cards. This note sits beside them, not over the prices.
+      </BittuNote>
       <div className="mt-4 space-y-5">
         <Notice />
         <section>

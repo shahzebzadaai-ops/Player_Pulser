@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import { headers } from "next/headers";
 import { Suspense } from "react";
+import { AskBittu } from "@/components/ask-bittu";
 import { AttributionBeacon } from "@/components/attribution-beacon";
 import { AuthOverlay } from "@/components/auth-overlay";
 import { authFlags } from "@/domain/auth-flags";
@@ -46,6 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Suspense fallback={null}>
             <AuthOverlay flags={{ ...flags, googleSetupMessage: googleSetupMessage(process.env, origin), appleSetupMessage: appleSetupMessage(process.env, origin) }} />
           </Suspense>
+          <AskBittu />
         </PriceStreamProvider>
       </body>
     </html>

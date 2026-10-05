@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BannerSlot } from "@/components/banner-slot";
+import { BittuFigure } from "@/components/bittu-figure";
 import { MoverCard, SectionHead } from "@/components/cards";
 import { FeaturedPlayerHero } from "@/components/featured-player";
 import { MarketPulse } from "@/components/price-display";
@@ -37,7 +38,13 @@ export default async function HomePage() {
           </Link>
         </div>
       </header>
-      <h1 className="mt-4 text-xl font-bold">Hi, {user.displayName}</h1>
+      <div className="mt-4 flex items-center gap-3">
+        <BittuFigure pose="listen" className="h-16 w-auto shrink-0" />
+        <div>
+          <h1 className="text-xl font-bold">Hi, {user.displayName}</h1>
+          <p className="text-sm text-muted">Good to see you. Your balances and players are just below.</p>
+        </div>
+      </div>
       <section className="mt-4 rounded-3xl border border-line bg-card p-4" aria-label="Balance">
         <div className="grid grid-cols-2 gap-3">
           <div className="min-w-0">
