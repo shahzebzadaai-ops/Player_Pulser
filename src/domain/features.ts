@@ -11,6 +11,7 @@ export const FEATURE_KEYS = [
   "newsPriceMovementEnabled",
   "demandPriceMovementEnabled",
   "pulsePreviewEnabled",
+  "newsPulseEnabled",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_KEYS)[number];
@@ -77,6 +78,10 @@ export const FEATURE_LABELS: Record<FeatureKey, { label: string; note: string }>
     label: "Simulation preview",
     note: "Simulation only — no effect on cash settlement. OFF stops preview ticks. Feed monitoring, quotes, wallets, and holdings stay as they are.",
   },
+  newsPulseEnabled: {
+    label: "News Pulse",
+    note: "OFF stops Indian cricket news collection and hides Bittu's News Desk. Stored stories stay. Quotes do not move from this desk.",
+  },
 };
 
 export function bonusIssuanceAllowed(flags: FeatureFlags, source: "WELCOME" | "OTHER"): boolean {
@@ -99,5 +104,6 @@ export function defaultFeatureFlags(): FeatureFlags {
     newsPriceMovementEnabled: true,
     demandPriceMovementEnabled: true,
     pulsePreviewEnabled: false,
+    newsPulseEnabled: true,
   };
 }

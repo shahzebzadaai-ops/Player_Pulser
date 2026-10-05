@@ -8,6 +8,7 @@ import { AuthOverlay } from "@/components/auth-overlay";
 import { authFlags } from "@/domain/auth-flags";
 import { appleSetupMessage, googleSetupMessage } from "@/domain/provider-setup";
 import { PwaRegister } from "@/components/chrome";
+import { GalaxyBackground } from "@/components/galaxy-background";
 import { PriceStreamProvider } from "@/components/price-stream";
 import "./globals.css";
 
@@ -22,6 +23,14 @@ export const metadata: Metadata = {
   applicationName: "PlayerPulser",
   robots: { index: false, follow: false },
   appleWebApp: { capable: true, title: "PlayerPulser", statusBarStyle: "black-translucent" },
+  icons: {
+    icon: [
+      { url: "/brand/favicon.ico?v=2", sizes: "48x48", type: "image/x-icon" },
+      { url: "/brand/icon-32.png?v=2", sizes: "32x32", type: "image/png" },
+      { url: "/brand/icon-192.png?v=2", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/brand/apple-touch-icon.png?v=2", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = {
@@ -38,6 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={`${outfit.variable} h-full antialiased`}>
       <body className="min-h-full">
+        <GalaxyBackground />
         <PwaRegister />
         <Suspense fallback={null}>
           <AttributionBeacon />

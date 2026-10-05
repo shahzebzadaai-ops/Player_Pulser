@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { BITTU_POSES, type BittuPose } from "@/domain/bittu";
 
 export function BittuFigure({
@@ -25,22 +24,5 @@ export function BittuFigure({
       className={`object-contain ${className}`}
       style={{ aspectRatio: `${item.width} / ${item.height}` }}
     />
-  );
-}
-
-export function BittuNote({
-  pose,
-  children,
-  className = "",
-}: {
-  pose: BittuPose;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <BittuFigure pose={pose} className="h-16 w-auto shrink-0" />
-      <div className="min-w-0 text-sm text-muted">{children}</div>
-    </div>
   );
 }

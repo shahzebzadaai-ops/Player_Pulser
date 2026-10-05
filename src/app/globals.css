@@ -29,6 +29,7 @@ html {
 }
 
 body {
+  isolation: isolate;
   min-height: 100dvh;
   max-width: 100%;
   background:
@@ -298,6 +299,9 @@ select {
   .market-marquee,
   .player-marquee,
   .hero-fade,
+  .bittu-promo,
+  .bittu-promo-art,
+  .bittu-promo-glass::before,
   .skel,
   .press:active,
   .pulse-star {
@@ -320,9 +324,11 @@ select {
   width: min(100%, 28rem);
   max-height: min(92dvh, 40rem);
   margin: auto;
-  border: 0;
+  border: 1px solid rgba(126, 174, 255, 0.22);
   border-radius: 1.5rem;
-  background: #122033;
+  background: rgba(14, 26, 46, 0.84);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
+  backdrop-filter: blur(18px) saturate(130%);
   color: inherit;
   padding: 0;
   overflow: hidden;
@@ -333,7 +339,7 @@ select {
   align-items: center;
   gap: 0.75rem;
   padding: 1rem 1.25rem 0.5rem;
-  background: #122033;
+  background: transparent;
 }
 
 .auth-sheet-body {
@@ -388,4 +394,550 @@ select {
 @keyframes auth-sheet-in {
   from { transform: translateY(12px); opacity: 0.6; }
   to { transform: none; opacity: 1; }
+}
+
+.bittu-promo {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34% minmax(0, 1fr);
+  align-items: end;
+  column-gap: 0.4rem;
+  min-width: 0;
+  padding: 0.85rem 0.9rem 0.2rem 0.15rem;
+  color: inherit;
+  text-decoration: none;
+  isolation: isolate;
+  animation: hero-fade 480ms ease;
+}
+
+.bittu-promo.is-compact,
+.bittu-promo.is-info {
+  grid-template-columns: 32% minmax(0, 1fr);
+  align-items: center;
+  padding: 0.7rem 0.8rem 0.7rem 0.2rem;
+}
+
+.bittu-promo-glass {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(126, 174, 255, 0.28);
+  background:
+    linear-gradient(165deg, rgba(226, 238, 255, 0.16), transparent 32%),
+    linear-gradient(145deg, rgba(42, 104, 204, 0.42), rgba(8, 18, 38, 0.74));
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  backdrop-filter: blur(22px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 rgba(232, 242, 255, 0.38),
+    inset -1px -1px 0 rgba(4, 10, 24, 0.45),
+    0 16px 36px rgba(4, 10, 24, 0.42),
+    0 0 22px rgba(47, 123, 255, 0.14);
+}
+
+.bittu-promo-glass::before {
+  content: "";
+  position: absolute;
+  top: -30%;
+  left: 8%;
+  width: 48%;
+  height: 80%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 72%);
+  transform: rotate(14deg);
+  pointer-events: none;
+  animation: bittu-sheen 9s ease-in-out infinite;
+}
+
+.bittu-promo.is-info .bittu-promo-glass {
+  background:
+    linear-gradient(165deg, rgba(226, 238, 255, 0.12), transparent 30%),
+    linear-gradient(145deg, rgba(32, 74, 148, 0.36), rgba(8, 18, 38, 0.76));
+}
+
+.bittu-promo.is-success .bittu-promo-glass {
+  border-color: rgba(150, 214, 176, 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(232, 255, 242, 0.24),
+    inset -1px -1px 0 rgba(4, 10, 24, 0.45),
+    0 16px 36px rgba(4, 10, 24, 0.42),
+    0 0 18px rgba(30, 215, 96, 0.1);
+}
+
+.bittu-promo-figure {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 0;
+  margin-bottom: -0.55rem;
+}
+
+.bittu-promo.is-compact .bittu-promo-figure,
+.bittu-promo.is-info .bittu-promo-figure {
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.bittu-promo-glow {
+  position: absolute;
+  left: 10%;
+  right: 6%;
+  bottom: 6%;
+  height: 46%;
+  background: radial-gradient(circle, rgba(61, 139, 255, 0.4), transparent 68%);
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+.bittu-promo-art {
+  position: relative;
+  z-index: 1;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 13.25rem;
+  object-fit: contain;
+  object-position: center bottom;
+  animation: bittu-float 4.8s ease-in-out infinite;
+}
+
+.bittu-promo.is-compact .bittu-promo-art,
+.bittu-promo.is-info .bittu-promo-art {
+  max-height: 7.25rem;
+  object-position: center center;
+}
+
+.bittu-promo-copy {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  padding-bottom: 0.75rem;
+}
+
+.bittu-promo.is-compact .bittu-promo-copy,
+.bittu-promo.is-info .bittu-promo-copy {
+  padding-bottom: 0;
+}
+
+.bittu-promo-eyebrow {
+  margin: 0;
+  color: var(--color-gain);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.bittu-promo-title {
+  margin: 0.15rem 0 0;
+  color: #f5f8fc;
+  font-size: clamp(1.05rem, 3.8vw, 1.55rem);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.bittu-promo-line {
+  margin: 0.2rem 0 0;
+  color: #d7e5f8;
+  font-size: clamp(0.8rem, 3.1vw, 0.95rem);
+  line-height: 1.3;
+}
+
+.bittu-promo-offer {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin: 0.3rem 0 0;
+  color: #f4f8ff;
+  font-size: clamp(1.35rem, 5.5vw, 2.15rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.bittu-promo-offer .is-accent {
+  color: #e2b657;
+  font-size: 0.58em;
+  letter-spacing: 0.06em;
+}
+
+.bittu-promo-detail {
+  margin: 0.35rem 0 0;
+  color: #b7c5d8;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.bittu-promo-cta {
+  width: auto;
+  min-width: 8.75rem;
+  max-width: 12.5rem;
+  margin-top: 0.65rem;
+  padding-inline: 1.35rem;
+  white-space: nowrap;
+}
+
+.bittu-promo-help {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 0.15rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #d5e4f7;
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.bittu-promo-dismiss {
+  position: absolute;
+  z-index: 2;
+  top: 0.25rem;
+  right: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(8, 18, 38, 0.28);
+  color: #f5f8fc;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+@media (max-width: 480px) {
+  .bittu-promo-cta {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .bittu-promo.is-primary .bittu-promo-eyebrow,
+  .bittu-promo.is-primary .bittu-promo-detail {
+    display: none;
+  }
+
+  .bittu-promo {
+    column-gap: 0.25rem;
+    padding-right: 0.65rem;
+  }
+}
+
+@keyframes bittu-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes bittu-sheen {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.75; }
+}
+
+.galaxy {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+html.galaxy-on .galaxy {
+  visibility: visible;
+}
+
+.galaxy-nebula {
+  position: absolute;
+  inset: -12%;
+  background:
+    radial-gradient(ellipse 42% 32% at 18% 12%, rgba(47, 123, 255, 0.16), transparent 62%),
+    radial-gradient(ellipse 36% 28% at 82% 78%, rgba(20, 72, 140, 0.14), transparent 66%);
+  transform: translate3d(0, 0, 0);
+  animation: galaxy-drift 160s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.galaxy-layer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 1px;
+  border-radius: 999px;
+  background: transparent;
+  transform: translate3d(-50%, -50%, 0);
+  will-change: transform;
+}
+
+.galaxy-far {
+  animation: galaxy-spin 140s linear infinite;
+}
+
+.galaxy-mid {
+  animation: galaxy-spin 105s linear infinite reverse;
+}
+
+.galaxy-near {
+  width: 2px;
+  height: 2px;
+  animation: galaxy-spin 82s linear infinite;
+}
+
+html.galaxy-paused .galaxy-layer,
+html.galaxy-paused .galaxy-nebula {
+  animation-play-state: paused;
+}
+
+@media (max-width: 640px) {
+  .galaxy-nebula {
+    background: radial-gradient(ellipse 50% 36% at 22% 8%, rgba(47, 123, 255, 0.14), transparent 64%);
+    animation-duration: 200s;
+  }
+
+  .galaxy-far { animation-duration: 180s; }
+  .galaxy-mid { animation-duration: 145s; }
+  .galaxy-near { animation-duration: 120s; }
+}
+
+@media (min-width: 641px) {
+  .galaxy-nebula {
+    background:
+      radial-gradient(ellipse 42% 32% at 18% 12%, rgba(47, 123, 255, 0.16), transparent 62%),
+      radial-gradient(ellipse 28% 22% at 62% 28%, rgba(61, 139, 255, 0.08), transparent 70%),
+      radial-gradient(ellipse 36% 28% at 82% 78%, rgba(20, 72, 140, 0.14), transparent 66%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .galaxy-layer,
+  .galaxy-nebula,
+  .news-pulse-ring,
+  .news-pulse-flame,
+  .news-pulse-mic {
+    animation: none;
+  }
+}
+
+@keyframes galaxy-spin {
+  from { transform: translate3d(-50%, -50%, 0) rotate(0deg); }
+  to { transform: translate3d(-50%, -50%, 0) rotate(360deg); }
+}
+
+@keyframes galaxy-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-2%, 1.2%, 0); }
+}
+
+.news-desk,
+.news-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.news-card h3,
+.news-card p {
+  overflow-wrap: anywhere;
+}
+
+.news-pulse-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 4.75rem;
+  margin-top: 0.75rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(126, 174, 255, 0.28);
+  border-radius: 1.25rem;
+  background: rgba(14, 28, 52, 0.9);
+  color: inherit;
+  text-align: left;
+}
+
+.news-pulse-portrait {
+  position: relative;
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  flex: none;
+  place-items: end center;
+}
+
+.news-pulse-bittu {
+  position: relative;
+  z-index: 1;
+  height: 3.35rem;
+  width: auto;
+}
+
+.news-pulse-ring {
+  position: absolute;
+  inset: 1px;
+  border: 1px solid rgba(61, 139, 255, 0.75);
+  border-radius: 999px;
+  animation: news-ring 3.8s ease-out infinite;
+}
+
+.news-pulse-flame {
+  position: absolute;
+  right: 0.15rem;
+  bottom: 0;
+  left: 0.15rem;
+  height: 1.05rem;
+  background: radial-gradient(ellipse at center, rgba(61, 139, 255, 0.5), transparent 70%);
+  opacity: 0.4;
+}
+
+.news-pulse-btn[data-alert="new"] .news-pulse-flame,
+.news-pulse-btn[data-alert="important"] .news-pulse-flame {
+  opacity: 0.95;
+  animation: news-flame 1.8s ease-in-out 2;
+}
+
+.news-pulse-btn[data-alert="important"] .news-pulse-ring {
+  border-color: rgba(120, 176, 255, 0.9);
+}
+
+.news-pulse-btn[data-alert="high"] {
+  border-color: rgba(214, 146, 78, 0.5);
+}
+
+.news-pulse-btn[data-alert="high"] .news-pulse-flame {
+  background: radial-gradient(ellipse at center, rgba(214, 132, 64, 0.72), transparent 70%);
+  opacity: 1;
+  animation: news-flame 1.6s ease-in-out 2;
+}
+
+.news-pulse-btn[data-alert="offline"] {
+  opacity: 0.8;
+}
+
+.news-pulse-btn[data-alert="offline"] .news-pulse-ring,
+.news-pulse-btn[data-alert="offline"] .news-pulse-flame {
+  animation: none;
+  opacity: 0.25;
+}
+
+.news-pulse-mic {
+  position: absolute;
+  z-index: 2;
+  right: -4px;
+  bottom: 0;
+  display: grid;
+  width: 1.45rem;
+  height: 1.45rem;
+  place-items: center;
+  border-radius: 999px;
+  background: #10233f;
+  transition: transform 420ms ease;
+}
+
+.news-pulse-mic.is-up {
+  transform: translateY(-3px);
+}
+
+.news-pulse-badge {
+  border-radius: 999px;
+  background: rgba(47, 123, 255, 0.18);
+  padding: 0.1rem 0.4rem;
+  color: #9ec0ff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.news-pulse-badge.is-new {
+  background: rgba(47, 123, 255, 0.3);
+  color: #f5f8fc;
+}
+
+.news-pulse-ticker {
+  display: block;
+  margin-top: 0.15rem;
+  color: #d7e6ff;
+  font-size: 0.75rem;
+}
+
+.news-breaking {
+  border-radius: 999px;
+  background: rgba(176, 92, 42, 0.22);
+  padding: 0.1rem 0.4rem;
+  color: #f0c08a;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+@keyframes news-ring {
+  0% { transform: scale(0.86); opacity: 0.75; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+
+@keyframes news-flame {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+.logo-lockup {
+  display: inline-flex;
+  flex: none;
+  line-height: 0;
+}
+
+.logo-mark {
+  display: block;
+  width: 108px;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 1;
+  object-fit: contain;
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.site-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  margin-left: auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.btn-primary.header-action,
+.btn-secondary.header-action {
+  min-height: 2.25rem;
+  padding: 0 0.65rem;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  flex: none;
+}
+
+.site-header-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  margin-top: 0.4rem;
+}
+
+@media (min-width: 768px) {
+  .logo-mark {
+    width: 140px;
+  }
 }

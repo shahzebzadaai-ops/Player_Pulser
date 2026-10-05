@@ -4,6 +4,7 @@ import { BittuFigure } from "@/components/bittu-figure";
 import { ClearIntent } from "@/components/clear-intent";
 import { GuestTrade } from "@/components/guest-trade";
 import { HowPricesWork } from "@/components/how-prices-work";
+import { PlayerNewsDesk } from "@/components/news-pulse";
 import { PriceChart } from "@/components/price-chart";
 import { PulsePanel } from "@/components/pulse-star";
 import { TradeSheet } from "@/components/trade-sheet";
@@ -54,11 +55,11 @@ export default async function PlayerPage({
   }
   return (
     <main className="px-4 pt-4">
-      <header className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-        <Link href="/market" className="flex h-11 w-11 items-center justify-center rounded-full bg-card" aria-label="Back to market">
+      <header className="flex min-w-0 items-center justify-between gap-2">
+        <Link href="/market" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-card" aria-label="Back to market">
           ←
         </Link>
-        <Logo wordmark={false} />
+        <Logo />
         <LiveDot live={player.live} stale={player.stale} playerId={player.id} />
       </header>
       <section className="mt-4 flex items-center gap-3">
@@ -93,6 +94,7 @@ export default async function PlayerPage({
       <div className="mt-4">
         <PriceChart playerId={player.id} initial={history.points} initialNote={history.note} />
       </div>
+      {user ? <PlayerNewsDesk playerId={player.id} /> : null}
       {player.pulse ? (
         <PulsePanel
           playerId={player.id}

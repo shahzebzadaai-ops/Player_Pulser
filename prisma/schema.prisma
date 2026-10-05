@@ -142,6 +142,7 @@ model User {
   watches      PlayerWatch[]
   policyAcceptances PolicyAcceptance[]
   abuseFlags   AbuseFlag[]
+  newsReads    NewsRead[]
 }
 
 model Session {
@@ -231,6 +232,7 @@ model Player {
   riskHistory       RiskStateChange[]
   pulsePreviews     PulsePreviewCycle[]
   watches           PlayerWatch[]
+  newsArticles      NewsArticlePlayer[]
 }
 
 model PulsePreviewCycle {
@@ -1261,6 +1263,63 @@ model ShadowMatchSignoff {
 
   @@unique([matchId, source])
   @@index([matchId])
+}
+
+model NewsArticle {
+  id              String              @id @default(cuid())
+  canonicalUrl    String              @unique
+  titleKey        String
+  title           String
+  sourceName      String
+  sourceHost      String
+  publishedAt     DateTime            @db.Timestamptz(3)
+  description     String              @default("")
+  quickSummary    String
+  contextSummary  String
+  sentiment       String
+  eventType       String
+  relevance       String
+  confidence      Int
+  verification    String
+  pricingEligible Boolean             @default(false)
+  summaryMode     String              @default("source")
+  createdAt       DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime            @updatedAt @db.Timestamptz(3)
+  players         NewsArticlePlayer[]
+  reads           NewsRead[]
+
+  @@index([publishedAt])
+  @@index([titleKey])
+}
+
+model NewsArticlePlayer {
+  articleId String
+  playerId  String
+  article   NewsArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  player    Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, playerId])
+  @@index([playerId])
+}
+
+model NewsRead {
+  userId    String
+  articleId String
+  readAt    DateTime    @default(now()) @db.Timestamptz(3)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article   NewsArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, articleId])
+}
+
+model NewsPulseHealth {
+  id            String    @id @default("default")
+  status        String    @default("idle")
+  lastSuccessAt DateTime? @db.Timestamptz(3)
+  lastErrorAt   DateTime? @db.Timestamptz(3)
+  lastError     String    @default("")
+  playerCursor  Int       @default(0)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
 }
 
 model FeedSnapshot {

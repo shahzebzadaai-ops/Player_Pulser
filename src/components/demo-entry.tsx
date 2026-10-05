@@ -24,7 +24,7 @@ export function DemoEntry() {
 
   return (
     <span className="inline-flex min-w-0 flex-col items-stretch">
-      <button type="button" className="btn-primary px-3 text-sm" disabled={pending} onClick={() => void start()}>
+      <button type="button" className="btn-secondary header-action" disabled={pending} onClick={() => void start()}>
         {pending ? "Opening demo" : "Try Live Demo"}
       </button>
       {message ? (

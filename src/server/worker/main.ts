@@ -11,6 +11,7 @@ import { maintainPrices } from "@/server/price-cycle";
 import { getSettings } from "@/server/settings";
 import { simulationCycleMs } from "@/domain/settings";
 import { runPulsePreview } from "@/server/pulse-preview";
+import { runNewsPulseCycle } from "@/server/news-pulse";
 import { backfillPlayerRiskControls } from "@/server/risk";
 import { withUserLock } from "@/server/ledger";
 
@@ -116,6 +117,18 @@ void schedulePrices().catch((error) => {
   console.error(JSON.stringify({ level: "error", message: error instanceof Error ? error.message : "price schedule", at: new Date().toISOString() }));
 });
 void pulseTask();
+let newsRunning = false;
+async function newsTask() {
+  if (newsRunning) return;
+  newsRunning = true;
+  try {
+    await runNewsPulseCycle();
+  } catch (error) {
+    console.error(JSON.stringify({ level: "error", message: error instanceof Error ? error.message : "news pulse", at: new Date().toISOString() }));
+  } finally {
+    newsRunning = false;
+  }
+}
 const timer = setInterval(() => {
   cycle().catch((error) => {
     console.error(JSON.stringify({ level: "error", message: error instanceof Error ? error.message : "worker", at: new Date().toISOString() }));
@@ -124,10 +137,18 @@ const timer = setInterval(() => {
 const pulseTimer = setInterval(() => {
   void pulseTask();
 }, 5000);
+const newsTimer = setInterval(() => {
+  void newsTask();
+}, 7 * 60 * 1000);
+const newsStart = setTimeout(() => {
+  void newsTask();
+}, 20_000);
 
 function shutdown() {
   clearInterval(timer);
   clearInterval(pulseTimer);
+  clearInterval(newsTimer);
+  clearTimeout(newsStart);
   if (priceTimer) clearTimeout(priceTimer);
   void prisma.$disconnect().finally(() => process.exit(0));
 }

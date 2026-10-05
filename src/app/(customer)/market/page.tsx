@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BannerSlot } from "@/components/banner-slot";
-import { BittuNote } from "@/components/bittu-figure";
+import { BittuNote } from "@/components/bittu-promo-banner";
+import { NewsPulseButton } from "@/components/news-pulse";
 import { Notice, SectionHead } from "@/components/cards";
 import { LiveMarketList } from "@/components/market-list";
 import { MarketPulse } from "@/components/price-display";
@@ -32,11 +33,12 @@ export default async function MarketPage({
 
   return (
     <main className="px-4 pt-4">
-      <header className="mb-3 flex items-center justify-between gap-3">
+      <header className="mb-3 flex min-w-0 items-center justify-between gap-3">
         <Logo />
         <h1 className="text-2xl font-bold">Market</h1>
       </header>
       <MarketPulse />
+      <NewsPulseButton />
       <BannerSlot placement="MARKET" />
       <form className="mt-3 space-y-3" action="/market">
         <label className="block text-sm">

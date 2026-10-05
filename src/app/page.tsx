@@ -41,20 +41,22 @@ export default async function LandingPage() {
 
   return (
     <main id="top" className="mx-auto min-h-dvh w-full max-w-[430px] px-4 pb-44 pt-5">
-      <header className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2">
+      <header className="site-header">
         <Logo />
-        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
-          <ShowcaseMark />
-          <StreamStatus />
-          {investorDemoEnabled() ? <DemoEntry /> : null}
-          {user ? <Link href="/home" className="btn-secondary whitespace-nowrap px-3 text-sm">Your home</Link> : (
+        <div className="site-header-actions">
+          {user ? <Link href="/home" className="btn-secondary header-action">Your home</Link> : (
             <>
-              <Link href="/?auth=signup" className="btn-primary whitespace-nowrap px-3 text-sm">Sign up</Link>
-              <Link href="/?auth=login" className="btn-secondary whitespace-nowrap px-3 text-sm">Log in</Link>
+              <Link href="/?auth=signup" className="btn-primary header-action">Sign up</Link>
+              <Link href="/?auth=login" className="btn-secondary header-action">Log in</Link>
             </>
           )}
         </div>
       </header>
+      <div className="site-header-meta">
+        <ShowcaseMark />
+        <StreamStatus />
+        {investorDemoEnabled() ? <DemoEntry /> : null}
+      </div>
       <MarketPulse />
       <PlayerTicker players={players} />
       <BannerSlot placement="LANDING_HERO" />

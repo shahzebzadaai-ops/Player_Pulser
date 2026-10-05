@@ -15,7 +15,11 @@ export default async function HealthPage() {
   const health = await getSystemHealth();
   const realtime = realtimeDiagnostics();
   const appDb = dbDiagnostics();
-  const workerDbRow = await prisma.appSetting.findUnique({ where: { key: "ops.workerDb" } });
+  const [workerDbRow, newsOmit, newsSource] = await Promise.all([
+    prisma.appSetting.findUnique({ where: { key: "ops.workerDb" } }),
+    prisma.appSetting.findUnique({ where: { key: "news.omitLog" } }),
+    prisma.appSetting.findUnique({ where: { key: "news.briefingSource" } }),
+  ]);
   const workerDb = workerDbStatus(workerDbRow?.value);
   return (
     <main>
@@ -78,11 +82,34 @@ export default async function HealthPage() {
           </li>
         ))}
         <li className="rounded-xl border border-line bg-card px-3 py-2">
+          <span className="font-semibold">Bittu News</span>
+          <span className="block text-xs text-muted">{briefingSourceLabel(newsSource?.value)}</span>
+          <span className="block text-xs text-muted">{omitNotes(newsOmit?.value)}</span>
+        </li>
+        <li className="rounded-xl border border-line bg-card px-3 py-2">
           Active feed source: {feed.control.activeSource ?? "none"}. <Link className="text-india" href="/admin/market/live">Open live matches</Link>
         </li>
       </ul>
     </main>
   );
+}
+
+function briefingSourceLabel(value: unknown): string {
+  if (!value || typeof value !== "object" || !("label" in value)) {
+    return "The news worker has not reported a summary source yet. AI summarisation is not shown as active.";
+  }
+  const label = (value as { label?: unknown }).label;
+  if (typeof label !== "string" || !label.trim()) {
+    return "The news worker has not reported a summary source yet. AI summarisation is not shown as active.";
+  }
+  return label;
+}
+
+function omitNotes(value: unknown): string {
+  if (!value || typeof value !== "object" || !("notes" in value)) return "No omitted stories recorded.";
+  const notes = (value as { notes?: Array<{ title?: string; reason?: string }> }).notes ?? [];
+  if (!notes.length) return "No omitted stories recorded.";
+  return notes.slice(0, 6).map((note) => `${note.title ?? "Story"}: ${note.reason ?? "omitted"}`).join(" · ");
 }
 
 function workerDbStatus(value: unknown): string | null {

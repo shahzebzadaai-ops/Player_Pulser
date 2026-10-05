@@ -13,24 +13,21 @@ export function roleLabel(role: string): string {
   return "Batter";
 }
 
-export function Logo({ wordmark = true, href = CUSTOMER_LOGO_HREF }: { wordmark?: boolean; href?: string | null }) {
+export function Logo({ href = CUSTOMER_LOGO_HREF }: { wordmark?: boolean; href?: string | null }) {
   const mark = (
-    <span className="inline-flex items-center gap-2 text-[15px] font-semibold tracking-tight">
-      <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0" aria-hidden>
-        <rect width="32" height="32" rx="9" fill="#2f7bff" />
-        <path d="M8.5 7.5h9.2a6.2 6.2 0 0 1 0 12.4H13v4.6H8.5V7.5zm4.5 3.6v5.2h4.4a2.6 2.6 0 0 0 0-5.2H13z" fill="white" />
-        <path d="M19 23.5c2.2.8 4.2.4 6.2-1.6" stroke="#7dffb4" strokeWidth="2" fill="none" strokeLinecap="round" />
-      </svg>
-      {wordmark ? (
-        <span>
-          Player<span className="text-india">Pulser</span>
-        </span>
-      ) : null}
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/brand/playerpulser-logo.png"
+      alt={href ? "" : "PlayerPulser"}
+      width={1024}
+      height={512}
+      decoding="async"
+      className="logo-mark"
+    />
   );
-  if (!href) return mark;
+  if (!href) return <span className="logo-lockup">{mark}</span>;
   return (
-    <Link href={href} aria-label="PlayerPulser home">
+    <Link href={href} aria-label="PlayerPulser home" className="logo-lockup">
       {mark}
     </Link>
   );
