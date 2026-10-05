@@ -61,29 +61,27 @@ export default async function PlayerPage({
         <Logo wordmark={false} />
         <LiveDot live={player.live} stale={player.stale} playerId={player.id} />
       </header>
-      <section className="mt-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="wrap-anywhere text-2xl font-bold leading-tight">{player.name}</h1>
-            <p className="mt-1 text-xs text-muted">
-              INDIA · {roleLabel(player.role).toUpperCase()}
-              {player.jerseyNumber ? ` · #${player.jerseyNumber}` : ""}
-            </p>
-          </div>
-          <Portrait name={player.name} seed={player.slug} className="h-14 w-12 shrink-0" />
+      <section className="mt-4 flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="wrap-anywhere text-2xl font-bold leading-tight">{player.name}</h1>
+          <p className="mt-1 text-xs text-muted">
+            INDIA · {roleLabel(player.role).toUpperCase()}
+            {player.jerseyNumber ? ` · #${player.jerseyNumber}` : ""}
+          </p>
+          <p className="num mt-3 text-[clamp(1.75rem,8vw,2.5rem)] font-bold leading-none">
+            <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
+          </p>
+          <p className="mt-1 text-sm">
+            <PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />
+            <span className="ml-1 text-muted">Today</span>
+          </p>
+          {user ? (
+            <div className="mt-3">
+              <WatchButton playerId={player.id} initial={Boolean(watch)} />
+            </div>
+          ) : null}
         </div>
-        <p className="num mt-4 text-4xl font-bold leading-none">
-          <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
-        </p>
-        <p className="mt-1 text-sm">
-          <PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />
-          <span className="ml-1 text-muted">Today</span>
-        </p>
-        {user ? (
-          <div className="mt-3">
-            <WatchButton playerId={player.id} initial={Boolean(watch)} />
-          </div>
-        ) : null}
+        <Portrait name={player.name} seed={player.slug} className="h-44 w-36 shrink-0" />
       </section>
       <dl className="mt-3 grid grid-cols-2 gap-2 text-center text-[11px]">
         <Stat label="24h High" value={formatPaise(player.highPaise)} />

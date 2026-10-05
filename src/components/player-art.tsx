@@ -22,7 +22,7 @@ export function PlayerArt({
       alt={alt}
       width={PLAYER_ARTWORK_WIDTH}
       height={PLAYER_ARTWORK_HEIGHT}
-      className={`${className} shrink-0 bg-black object-cover object-[center_18%]`}
+      className={`${className} shrink-0 bg-transparent object-contain object-center drop-shadow-[0_10px_16px_rgba(0,0,0,0.28)]`}
       onError={() => setFailed(true)}
     />
   );

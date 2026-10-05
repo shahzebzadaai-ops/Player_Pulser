@@ -73,24 +73,24 @@ export function FeaturedPlayerHero({
 
   return (
     <article className={`py-1 ${reduced ? "" : "hero-fade"}`} key={player.id} aria-live="polite">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold tracking-wide text-muted">{player.reason ?? "Trending"}</p>
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-semibold tracking-wide text-muted">{player.reason ?? "Trending"}</p>
+            <LiveDot live={player.live} stale={player.stale} playerId={player.id} />
+          </div>
           <h2 className="wrap-anywhere mt-1 text-xl font-bold leading-tight">
             <Link href={profile}>{player.name}</Link>
           </h2>
+          <p className="num mt-2 text-[clamp(1.75rem,8vw,2.5rem)] font-bold leading-none">
+            <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
+          </p>
+          <p className="mt-1 text-sm">
+            <PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <LiveDot live={player.live} stale={player.stale} playerId={player.id} />
-          <Portrait name={player.name} seed={player.slug} className="h-14 w-12" />
-        </div>
+        <Portrait name={player.name} seed={player.slug} className="h-40 w-32 shrink-0" />
       </div>
-      <p className="num mt-3 text-4xl font-bold leading-none">
-        <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
-      </p>
-      <p className="mt-1 text-sm">
-        <PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />
-      </p>
       <Sparkline playerId={player.id} values={player.history} positive={Number(player.changePaise) >= 0} className="mt-3 h-24 w-full" />
       <div className="mt-3 grid grid-cols-2 gap-2">
         {signedIn ? (

@@ -74,7 +74,7 @@ export function Portrait({
   );
   const src = playerArtworkSrc(seed);
   if (!src) return fallback;
-  return <PlayerArt src={src} alt={playerArtworkAlt(alt ?? name)} className={`${className} rounded-2xl`} fallback={fallback} />;
+  return <PlayerArt src={src} alt={playerArtworkAlt(alt ?? name)} className={className} fallback={fallback} />;
 }
 
 export function LiveDot({ live, stale = false, playerId }: { live: boolean; stale?: boolean; playerId?: string }) {

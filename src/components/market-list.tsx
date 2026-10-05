@@ -12,7 +12,7 @@ export const MarketRow = memo(function MarketRow({ player }: { player: PlayerVie
   const up = Number(player.changePaise) >= 0;
   return (
     <Link href={`/players/${player.slug}`} className="flex min-w-0 items-center gap-3 border-b border-line/70 py-3">
-      <Portrait name={player.name} seed={player.slug} className="h-11 w-10 shrink-0" />
+      <Portrait name={player.name} seed={player.slug} className="h-[4.75rem] w-[4.25rem] shrink-0" />
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold">{player.name}</p>
         <p className="num text-sm font-semibold">

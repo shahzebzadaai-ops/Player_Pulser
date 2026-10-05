@@ -75,7 +75,7 @@ export default async function HomePage() {
             {pulsers.map((position) => (
               <Link key={position.playerId} href={`/players/${position.slug}`} className="w-[220px] shrink-0 rounded-2xl border border-line bg-card p-3">
                 <div className="flex gap-2">
-                  <Portrait name={position.name} seed={position.slug} className="h-14 w-12" />
+                  <Portrait name={position.name} seed={position.slug} className="h-16 w-14" />
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{position.name}</p>
                     <p className="text-xs text-muted">{position.quantity} Pulsers</p>

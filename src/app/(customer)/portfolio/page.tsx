@@ -32,7 +32,7 @@ export default async function PortfolioPage() {
             return (
               <li key={position.playerId} className="rounded-3xl border border-line bg-card p-3">
                 <div className="flex gap-3">
-                  <Portrait name={position.name} seed={position.slug} className="h-20 w-16" />
+                  <Portrait name={position.name} seed={position.slug} className="h-24 w-20" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <p className="wrap-anywhere font-semibold">{position.name}</p>
