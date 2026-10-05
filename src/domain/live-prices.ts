@@ -101,13 +101,46 @@ export function nextReconnectAttempt(attempt: number, opened: boolean): number {
   return opened ? 0 : attempt + 1;
 }
 
+function sameQuote(left: PlayerQuote, right: PlayerQuote): boolean {
+  return (
+    left.midPaise === right.midPaise &&
+    left.buyPaise === right.buyPaise &&
+    left.sellPaise === right.sellPaise &&
+    left.changePaise === right.changePaise &&
+    left.changePercent === right.changePercent &&
+    left.chartTime === right.chartTime &&
+    left.chartValue === right.chartValue &&
+    left.live === right.live &&
+    left.stale === right.stale &&
+    left.previousMidPricePaise === right.previousMidPricePaise
+  );
+}
+
+/** Keep the stored quote when a repeat or an older tick arrives. */
+export function mergePlayerQuote(previous: PlayerQuote | undefined, next: PlayerQuote): PlayerQuote {
+  if (!previous) return next;
+  if (previous.createdAt && next.createdAt && next.createdAt < previous.createdAt) return previous;
+  if (sameQuote(previous, next)) return previous;
+  return next;
+}
+
+export function changedPlayerIds(before: PriceStore, after: PriceStore): string[] {
+  const ids: string[] = [];
+  for (const [id, quote] of after.players) {
+    if (before.players.get(id) !== quote) ids.push(id);
+  }
+  return ids;
+}
+
 export function reducePriceFrame(state: PriceStore, frame: PriceFrame, now: number): PriceStore {
   if (frame.type === "heartbeat") {
     return { ...state, phase: "open", lastEventAt: now, marketMode: frame.marketMode ?? state.marketMode };
   }
   if (!frame.players) return state;
   const players = new Map(state.players);
-  for (const player of frame.players) players.set(player.id, player);
+  for (const player of frame.players) {
+    players.set(player.id, mergePlayerQuote(state.players.get(player.id), player));
+  }
   return {
     players,
     markets: frame.markets ?? state.markets,
@@ -116,6 +149,23 @@ export function reducePriceFrame(state: PriceStore, frame: PriceFrame, now: numb
     feedStale: Boolean(frame.stale),
     marketMode: frame.marketMode ?? state.marketMode,
   };
+}
+
+export type ChartRange = "1H" | "1D" | "7D" | "30D" | "ALL";
+
+/** 1D is the existing 24-hour window. It does not invent extra observations. */
+export function historyWindow(range: string): "1H" | "24H" | "7D" | "30D" | "ALL" {
+  if (range === "1D" || range === "24H") return "24H";
+  if (range === "1H" || range === "7D" || range === "30D" || range === "ALL") return range;
+  return "24H";
+}
+
+export function rankMovers<T extends { id: string; changePercent: number }>(players: T[]): T[] {
+  return [...players].sort((left, right) => Math.abs(right.changePercent) - Math.abs(left.changePercent) || left.id.localeCompare(right.id));
+}
+
+export function shouldRefreshRanking(lastAt: number, now: number, intervalMs = 4_000): boolean {
+  return now - lastAt >= intervalMs;
 }
 
 export function appendSparkline(values: number[], next: number, cap = SPARKLINE_CAP): number[] {

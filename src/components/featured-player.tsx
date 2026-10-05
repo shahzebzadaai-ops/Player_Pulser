@@ -14,6 +14,7 @@ export type FeaturedPick = {
   changePaise: string;
   changePercent: number;
   live: boolean;
+  stale?: boolean;
   history: number[];
   reason?: string;
 };
@@ -71,28 +72,26 @@ export function FeaturedPlayerHero({
   }
 
   return (
-    <article className={`rounded-3xl border border-line bg-card p-4 ${reduced ? "" : "hero-fade"}`} key={player.id} aria-live="polite">
-      <div className="flex gap-3">
-        <Portrait name={player.name} seed={player.slug} className="h-28 w-24" />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <h2 className="wrap-anywhere text-[clamp(1.05rem,4.6vw,1.25rem)] font-bold leading-tight">
-                <Link href={profile}>{player.name}</Link>
-              </h2>
-              <p className="text-xs text-muted">{player.reason ?? "Player price"}</p>
-            </div>
-            <LiveDot live={player.live} playerId={player.id} />
-          </div>
-          <p className="num wrap-anywhere text-[clamp(1.5rem,7vw,1.875rem)] font-bold">
-            <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
-          </p>
-          <p className="text-sm">
-            <PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />
-          </p>
-          <Sparkline playerId={player.id} values={player.history} positive={Number(player.changePaise) >= 0} />
+    <article className={`py-1 ${reduced ? "" : "hero-fade"}`} key={player.id} aria-live="polite">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold tracking-wide text-muted">{player.reason ?? "Trending"}</p>
+          <h2 className="wrap-anywhere mt-1 text-xl font-bold leading-tight">
+            <Link href={profile}>{player.name}</Link>
+          </h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <LiveDot live={player.live} stale={player.stale} playerId={player.id} />
+          <Portrait name={player.name} seed={player.slug} className="h-14 w-12" />
         </div>
       </div>
+      <p className="num mt-3 text-4xl font-bold leading-none">
+        <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
+      </p>
+      <p className="mt-1 text-sm">
+        <PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />
+      </p>
+      <Sparkline playerId={player.id} values={player.history} positive={Number(player.changePaise) >= 0} className="mt-3 h-24 w-full" />
       <div className="mt-3 grid grid-cols-2 gap-2">
         {signedIn ? (
           <>

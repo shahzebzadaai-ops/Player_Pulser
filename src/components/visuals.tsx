@@ -77,11 +77,12 @@ export function Portrait({
   return <PlayerArt src={src} alt={playerArtworkAlt(alt ?? name)} className={`${className} rounded-2xl`} fallback={fallback} />;
 }
 
-export function LiveDot({ live, playerId }: { live: boolean; playerId?: string }) {
+export function LiveDot({ live, stale = false, playerId }: { live: boolean; stale?: boolean; playerId?: string }) {
+  const word = stale ? "DELAYED" : live ? "LIVE" : "QUOTED";
   return (
     <span data-live-dot={playerId} className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-electric">
-      <span className={`live-dot ${live ? "is-live" : "bg-muted"}`} />
-      <span data-live-dot-label>{live ? "LIVE" : "QUOTED"}</span>
+      <span className={`live-dot ${word === "LIVE" ? "is-live" : "bg-muted"}`} />
+      <span data-live-dot-label>{word}</span>
     </span>
   );
 }

@@ -4,8 +4,13 @@ import { simulationCycleMs } from "./settings";
 import {
   appendSparkline,
   createSharedConnection,
+  changedPlayerIds,
   emptyPriceStore,
   formatExternalPrice,
+  historyWindow,
+  mergePlayerQuote,
+  rankMovers,
+  shouldRefreshRanking,
   heartbeatFrame,
   HEARTBEAT_MS,
   nextChartPoint,
@@ -144,5 +149,35 @@ describe("live price stream", () => {
     expect(source).not.toContain("prepareSimulatedTick");
     expect(source).not.toContain("publishPriceUpdate");
     expect(source).not.toContain("prisma");
+  });
+
+  it("keeps a repeated tick and drops an older one", () => {
+    const current = player("10150");
+    current.createdAt = "2026-10-03T00:00:02.000Z";
+    const repeat = mergePlayerQuote(current, { ...current });
+    expect(repeat).toBe(current);
+    const older = mergePlayerQuote(current, { ...player("9900"), createdAt: "2026-10-03T00:00:01.000Z" });
+    expect(older.midPaise).toBe("10150");
+    const snapshot = reducePriceFrame(emptyPriceStore(), { players: [current] }, 1_000);
+    const again = reducePriceFrame(snapshot, { players: [current] }, 2_000);
+    expect(changedPlayerIds(snapshot, again)).toEqual([]);
+    expect(again.players.get("p1")).toBe(snapshot.players.get("p1"));
+  });
+
+  it("ranks movers without reshuffling on every tick", () => {
+    const ranked = rankMovers([
+      { id: "b", changePercent: -2 },
+      { id: "a", changePercent: 4 },
+      { id: "c", changePercent: 4 },
+    ]);
+    expect(ranked.map((item) => item.id)).toEqual(["a", "c", "b"]);
+    expect(shouldRefreshRanking(1_000, 4_000)).toBe(false);
+    expect(shouldRefreshRanking(1_000, 5_000)).toBe(true);
+  });
+
+  it("maps the day control onto the stored day window", () => {
+    expect(historyWindow("1D")).toBe("24H");
+    expect(historyWindow("1H")).toBe("1H");
+    expect(historyWindow("nope")).toBe("24H");
   });
 });

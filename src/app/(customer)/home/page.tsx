@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { BannerSlot } from "@/components/banner-slot";
 import { BittuFigure } from "@/components/bittu-figure";
-import { MoverCard, SectionHead } from "@/components/cards";
+import { SectionHead } from "@/components/cards";
+import { LiveMarketList } from "@/components/market-list";
 import { FeaturedPlayerHero } from "@/components/featured-player";
 import { MarketPulse } from "@/components/price-display";
 import { PlayerTicker } from "@/components/player-ticker";
@@ -62,6 +63,9 @@ export default async function HomePage() {
         </div>
       </section>
       {user.role === "ADMIN" ? <Link href="/admin" className="mt-3 inline-flex min-h-11 items-center text-sm text-india">Open admin</Link> : null}
+      <div className="mt-5">
+        <FeaturedPlayerHero players={featured} tradeHref="player" signedIn />
+      </div>
       <section className="mt-5" aria-label="My Pulsers">
         <SectionHead title="My Pulsers" href="/portfolio" />
         {pulsers.length === 0 ? (
@@ -90,15 +94,12 @@ export default async function HomePage() {
       </section>
       <section className="mt-5">
         <SectionHead title="Top movers" href="/market?sort=movers" />
-        <div className="snap-row">
-          {movers.map((player) => (
-            <MoverCard key={player.id} player={player} />
-          ))}
-        </div>
+        <LiveMarketList players={movers} mode="movers" />
       </section>
-      <div className="mt-5">
-        <FeaturedPlayerHero players={featured} tradeHref="player" signedIn />
-      </div>
+      <section className="mt-5">
+        <SectionHead title="All players" href="/market" />
+        <LiveMarketList players={market.players} mode="all" />
+      </section>
       <MarketPulse />
       <PlayerTicker players={market.players} />
       <BannerSlot placement="HOME_MAIN" />

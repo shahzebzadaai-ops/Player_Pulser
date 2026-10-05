@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BannerSlot } from "@/components/banner-slot";
 import { BittuHero } from "@/components/bittu-hero";
-import { LiveCard, MoverCard } from "@/components/cards";
+import { LiveMarketList } from "@/components/market-list";
 import { FeaturedPlayerHero } from "@/components/featured-player";
 import { MarketPulse } from "@/components/price-display";
 import { PlayerTicker } from "@/components/player-ticker";
@@ -31,13 +31,10 @@ export default async function LandingPage() {
   const user = await getCurrentUser();
   let players: PlayerView[] = [];
   let movers: PlayerView[] = [];
-  let strip: PlayerView[] = [];
   try {
     const market = await listPlayers();
     players = market.players;
-    movers = [...market.players].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent)).slice(0, 4);
-    const featured = selectFeaturedPlayers(market.players);
-    strip = market.players.filter((player) => player.slug !== featured[0]?.player.slug).slice(0, 4);
+    movers = [...market.players].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent)).slice(0, 8);
   } catch {
     players = [];
   }
@@ -74,20 +71,13 @@ export default async function LandingPage() {
           <p className="rounded-2xl bg-card p-4 text-sm text-muted">Prices appear after the local database is seeded.</p>
         )}
       </div>
-      {strip.length > 0 ? (
-        <div className="snap-row mt-3">
-          {strip.map((player) => (
-            <MoverCard key={player.id} player={player} />
-          ))}
-        </div>
-      ) : null}
       <section className="mt-6">
         <h2 className="text-lg font-semibold">Top movers</h2>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          {movers.map((player) => (
-            <LiveCard key={player.id} player={player} className="min-w-0 w-full" guest={!user} />
-          ))}
-        </div>
+        <LiveMarketList players={movers} mode="movers" />
+      </section>
+      <section className="mt-6">
+        <h2 className="text-lg font-semibold">All players</h2>
+        <LiveMarketList players={players} mode="all" />
       </section>
       <section className="mt-6">
         <h2 className="text-lg font-semibold">How it works</h2>

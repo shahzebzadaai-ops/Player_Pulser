@@ -1,14 +1,12 @@
+import { historyWindow } from "@/domain/live-prices";
 import { priceHistory } from "@/server/queries";
-import { handle, json, requireUser } from "@/server/http";
-
-const RANGES = new Set(["1H", "24H", "7D", "30D", "ALL"]);
+import { handle, json } from "@/server/http";
 
 export async function GET(request: Request, context: { params: Promise<{ playerId: string }> }) {
   return handle(async () => {
-    await requireUser(request);
     const { playerId } = await context.params;
-    const range = new URL(request.url).searchParams.get("range") ?? "24H";
-    const history = await priceHistory(playerId, RANGES.has(range) ? range : "24H");
+    const range = new URL(request.url).searchParams.get("range") ?? "1D";
+    const history = await priceHistory(playerId, historyWindow(range));
     return json(history);
   });
 }

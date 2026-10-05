@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import {
+  changedPlayerIds,
   emptyPriceStore,
   nextReconnectAttempt,
   reducePriceFrame,
@@ -16,6 +17,7 @@ import { sseRetryDelayMs } from "@/domain/realtime";
 
 let store: PriceStore = emptyPriceStore();
 const listeners = new Set<() => void>();
+const playerListeners = new Map<string, Set<() => void>>();
 const serverStore = emptyPriceStore();
 let source: EventSource | null = null;
 let holders = 0;
@@ -24,13 +26,44 @@ let retryTimer = 0;
 let stopped = false;
 let generation = 0;
 
-function emit() {
+function feedWord(player: { live?: boolean; stale?: boolean } | undefined) {
+  const health = streamHealth({ phase: store.phase, lastEventAt: store.lastEventAt, now: Date.now() });
+  if (health === "reconnecting") return "OFFLINE";
+  if (health === "delayed" || player?.stale) return "DELAYED";
+  return player?.live ? "LIVE" : "QUOTED";
+}
+
+function paintFeedLabels() {
+  if (typeof document === "undefined") return;
+  for (const element of document.querySelectorAll<HTMLElement>("[data-live-dot]")) {
+    const label = element.querySelector("[data-live-dot-label]");
+    const dot = element.querySelector(".live-dot");
+    if (!label) continue;
+    const word = feedWord(store.players.get(element.dataset.liveDot ?? ""));
+    label.textContent = word;
+    dot?.classList.toggle("is-live", word === "LIVE");
+  }
+}
+
+function emit(changedIds: string[]) {
   for (const listener of listeners) listener();
+  for (const id of changedIds) {
+    const bucket = playerListeners.get(id);
+    if (!bucket) continue;
+    for (const listener of bucket) listener();
+  }
+  paintFeedLabels();
+}
+
+export function subscribePriceStore(listener: () => void) {
+  return subscribe(listener);
 }
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
 function paintMatchStatus(frame: PriceFrame) {
@@ -42,12 +75,6 @@ function paintMatchStatus(frame: PriceFrame) {
   for (const element of document.querySelectorAll<HTMLElement>("[data-live-why]")) {
     const player = frame.players.find((item) => item.id === element.dataset.liveWhy);
     if (player?.whyLine) element.textContent = player.whyLine;
-  }
-  for (const element of document.querySelectorAll<HTMLElement>("[data-live-dot]")) {
-    const player = frame.players.find((item) => item.id === element.dataset.liveDot);
-    const label = element.querySelector("[data-live-dot-label]");
-    if (!player || !label || player.live === undefined) continue;
-    label.textContent = player.live ? "LIVE" : "QUOTED";
   }
   window.dispatchEvent(new CustomEvent("pp-prices", { detail: frame }));
 }
@@ -65,7 +92,7 @@ function connect() {
     if (token !== generation) return;
     attempt = nextReconnectAttempt(attempt, true);
     store = { ...store, phase: "open" };
-    emit();
+    emit([]);
   };
   next.onmessage = (event) => {
     if (token !== generation) return;
@@ -75,8 +102,9 @@ function connect() {
     } catch {
       return;
     }
+    const previous = store;
     store = reducePriceFrame(store, frame, Date.now());
-    emit();
+    emit(changedPlayerIds(previous, store));
     if (frame.type !== "heartbeat") paintMatchStatus(frame);
   };
   next.onerror = () => {
@@ -85,7 +113,7 @@ function connect() {
     next.close();
     if (source === next) source = null;
     store = { ...store, phase: "reconnecting" };
-    emit();
+    emit([]);
     const delay = sseRetryDelayMs(attempt);
     attempt = nextReconnectAttempt(attempt, false);
     retryTimer = window.setTimeout(() => {
@@ -122,10 +150,28 @@ export function usePriceStore(): PriceStore {
   return useSyncExternalStore(subscribe, () => store, () => serverStore);
 }
 
+export function readPriceStore(): PriceStore {
+  return store;
+}
+
 export function useLivePlayer(playerId: string | undefined): PlayerQuote | null {
-  const current = usePriceStore();
-  if (!playerId) return null;
-  return current.players.get(playerId) ?? null;
+  return useSyncExternalStore(
+    (listener) => {
+      if (!playerId) return () => undefined;
+      let bucket = playerListeners.get(playerId);
+      if (!bucket) {
+        bucket = new Set();
+        playerListeners.set(playerId, bucket);
+      }
+      bucket.add(listener);
+      return () => {
+        bucket?.delete(listener);
+        if (bucket && bucket.size === 0) playerListeners.delete(playerId);
+      };
+    },
+    () => (playerId ? store.players.get(playerId) ?? null : null),
+    () => null,
+  );
 }
 
 export function useExternalMarkets(): ExternalQuote[] {

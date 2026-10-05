@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { BannerSlot } from "@/components/banner-slot";
 import { BittuNote } from "@/components/bittu-figure";
-import { LiveCard, MoverCard, Notice, SectionHead } from "@/components/cards";
+import { Notice, SectionHead } from "@/components/cards";
+import { LiveMarketList } from "@/components/market-list";
 import { MarketPulse } from "@/components/price-display";
 import { Logo, roleLabel } from "@/components/visuals";
-import { getCurrentUser } from "@/server/current-user";
 import { listPlayers } from "@/server/queries";
 
 export const metadata = { title: "Market" };
@@ -15,7 +15,6 @@ export default async function MarketPage({
   searchParams: Promise<{ q?: string; role?: string; live?: string; sort?: string }>;
 }) {
   const params = await searchParams;
-  const user = await getCurrentUser();
   const market = await listPlayers();
   const query = (params.q ?? "").trim().toLowerCase();
   let players = market.players.filter((player) => {
@@ -82,36 +81,15 @@ export default async function MarketPage({
       <div className="mt-4 space-y-5">
         <Notice />
         <section>
-          <SectionHead title="Live now" href="/market?live=1" />
-          <div className="snap-row">{market.players.filter((player) => player.live).slice(0, 8).map((player) => <LiveCard key={player.id} player={player} guest={!user} />)}</div>
-        </section>
-        <section>
-          <SectionHead title="Top gainers" href="/market?sort=gainers" />
-          <div className="snap-row">{[...market.players].sort((a, b) => b.changePercent - a.changePercent).slice(0, 8).map((player) => <MoverCard key={player.id} player={player} />)}</div>
-        </section>
-        <section>
-          <SectionHead title="Top losers" href="/market?sort=losers" />
-          <div className="snap-row">{[...market.players].sort((a, b) => a.changePercent - b.changePercent).slice(0, 8).map((player) => <MoverCard key={player.id} player={player} />)}</div>
-        </section>
-        <section>
-          <SectionHead title="Trending" href="/market?sort=movers" />
-          <div className="snap-row">{[...market.players].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent)).slice(0, 8).map((player) => <MoverCard key={player.id} player={player} />)}</div>
-        </section>
-        <section>
-          <SectionHead title="Upcoming" href="/market" />
-          <p className="mb-2 text-xs text-muted">Players not in a live simulated match. This is not a fixture list.</p>
-          <div className="snap-row">{market.players.filter((player) => !player.live).slice(0, 8).map((player) => <MoverCard key={player.id} player={player} />)}</div>
+          <SectionHead title="Top movers" href="/market?sort=movers" />
+          <LiveMarketList players={market.players} mode="movers" limit={8} />
         </section>
       </div>
       <h2 className="mt-6 text-lg font-semibold">All players</h2>
       {players.length === 0 ? (
         <p className="mt-6 rounded-2xl bg-card p-4 text-sm text-muted">No players match that search. Try another name or clear the filters.</p>
       ) : (
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          {players.map((player) => (
-            <LiveCard key={player.id} player={player} className="w-full" guest={!user} />
-          ))}
-        </div>
+        <LiveMarketList players={players} mode="all" />
       )}
     </main>
   );

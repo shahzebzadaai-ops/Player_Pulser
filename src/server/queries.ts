@@ -121,7 +121,7 @@ async function recentTicks(): Promise<RecentTick[]> {
       FROM "PriceTick"
       WHERE "playerId" = p."id"
       ORDER BY "createdAt" DESC
-      LIMIT 24
+      LIMIT 48
     ) t ON TRUE
   `;
 }
@@ -406,13 +406,15 @@ export async function recentEvents(limit = 12) {
 const RANGE_MS: Record<string, number | null> = {
   "1H": 60 * 60 * 1000,
   "24H": 24 * 60 * 60 * 1000,
+  "1D": 24 * 60 * 60 * 1000,
   "7D": 7 * 24 * 60 * 60 * 1000,
   "30D": 30 * 24 * 60 * 60 * 1000,
   ALL: null,
 };
 
 export async function priceHistory(playerId: string, range: string) {
-  const windowMs = Object.prototype.hasOwnProperty.call(RANGE_MS, range) ? RANGE_MS[range] : RANGE_MS["24H"];
+  const windowKey = range === "1D" ? "1D" : range in RANGE_MS ? range : "24H";
+  const windowMs = RANGE_MS[windowKey];
   const since = windowMs ? new Date(Date.now() - windowMs) : undefined;
   let ticks = await prisma.priceTick.findMany({
     where: { playerId, ...(since ? { createdAt: { gte: since } } : {}) },
@@ -442,9 +444,9 @@ export async function priceHistory(playerId: string, range: string) {
     points.push({ time, value: Number(tick.midPaise) / 100 });
   });
   return {
-    range: range in RANGE_MS ? range : "24H",
+    range: windowKey,
     points,
-    note: thin ? "This range only contains the simulated ticks stored so far." : null,
+    note: thin ? "Only the stored prices in this range are shown." : null,
   };
 }
 

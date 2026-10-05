@@ -49,42 +49,63 @@ export function PriceText({
   const amount = field === "change" ? (live?.changePaise ?? changePaise ?? "0") : (livePaise ?? paise ?? "0");
   const percent = live?.changePercent ?? initialPercent ?? 0;
   const signed = live?.changePaise ?? changePaise ?? "0";
-  const up = Number(signed) >= 0;
+  const direction = Number(signed) > 0 ? "text-gain" : Number(signed) < 0 ? "text-loss" : "text-muted";
   const text = field === "change" ? `${formatSignedPaise(signed)} (${formatPercent(percent)})` : formatPaise(amount);
   return (
     <PriceFlash value={Number(amount)}>
-      <span data-price-for={playerId} data-field={field} className={`num ${field === "change" ? (up ? "text-gain" : "text-loss") : ""}`}>
+      <span data-price-for={playerId} data-field={field} className={`num ${field === "change" ? direction : ""}`}>
         {text}
       </span>
     </PriceFlash>
   );
 }
 
-export function Sparkline({ playerId, values, positive }: { playerId?: string; values: number[]; positive: boolean }) {
+export function Sparkline({
+  playerId,
+  values,
+  positive,
+  className = "h-10 w-full",
+}: {
+  playerId?: string;
+  values: number[];
+  positive: boolean;
+  className?: string;
+}) {
   const live = useLivePlayer(playerId);
+  const liveMid = live?.midPaise;
+  const [base, setBase] = useState(values);
+  const [trackedMid, setTrackedMid] = useState<string | undefined>(undefined);
   const [series, setSeries] = useState(values);
-  const up = live ? Number(live.changePaise ?? "0") >= 0 : positive;
-  useEffect(() => {
-    if (!live?.midPaise) return;
-    const next = Number(live.midPaise);
-    setSeries((current) => appendSparkline(current, next, SPARKLINE_CAP));
-  }, [live?.midPaise]);
-  if (series.length < 2) return <div className="h-9" />;
+  if (values !== base) {
+    setBase(values);
+    setSeries(values);
+    setTrackedMid(undefined);
+  } else if (liveMid && liveMid !== trackedMid) {
+    setTrackedMid(liveMid);
+    setSeries(appendSparkline(series, Number(liveMid), SPARKLINE_CAP));
+  }
+  if (series.length < 2) return <div className={className} />;
   const min = Math.min(...series);
   const max = Math.max(...series);
-  const width = 120;
-  const height = 36;
+  const width = 160;
+  const height = 64;
   const span = max - min || 1;
-  const path = series
-    .map((value, index) => {
-      const x = (index / (series.length - 1)) * width;
-      const y = height - ((value - min) / span) * (height - 6) - 3;
-      return `${index === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`;
-    })
-    .join(" ");
+  const coords = series.map((value, index) => {
+    const x = (index / (series.length - 1)) * width;
+    const y = height - ((value - min) / span) * (height - 8) - 4;
+    return [x, y] as const;
+  });
+  const line = coords.map(([x, y], index) => `${index === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+  const area = `${line} L${width} ${height} L0 ${height} Z`;
+  const last = series[series.length - 1] ?? 0;
+  const first = series[0] ?? last;
+  const tone = last > first ? "gain" : last < first ? "loss" : "muted";
+  const stroke = tone === "gain" ? "var(--color-gain)" : tone === "loss" ? "var(--color-loss)" : "var(--color-muted)";
+  const label = tone === "gain" ? "Price line rising" : tone === "loss" ? "Price line falling" : "Price line unchanged";
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="h-9 w-full" aria-hidden>
-      <path d={path} fill="none" stroke={up ? "#1ed760" : "#ff4d5e"} strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
+    <svg viewBox={`0 0 ${width} ${height}`} className={className} role="img" aria-label={label} data-day-up={positive ? "true" : "false"}>
+      <path d={area} fill={stroke} opacity="0.16" />
+      <path d={line} fill="none" stroke={stroke} strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   );
 }

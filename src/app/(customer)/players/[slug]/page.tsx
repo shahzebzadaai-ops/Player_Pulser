@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BittuFigure, BittuNote } from "@/components/bittu-figure";
+import { BittuFigure } from "@/components/bittu-figure";
 import { ClearIntent } from "@/components/clear-intent";
 import { GuestTrade } from "@/components/guest-trade";
 import { HowPricesWork } from "@/components/how-prices-work";
@@ -52,8 +52,6 @@ export default async function PlayerPage({
   if (resume && user) {
     await recordEvent({ eventName: "buy_intent_resumed", dedupeKey: `buy-resume:${user.id}:${player.id}:${resume.displayedIndicativePrice}`, userId: user.id });
   }
-  const up = Number(player.changePaise) >= 0;
-
   return (
     <main className="px-4 pt-4">
       <header className="flex min-w-0 flex-wrap items-center justify-between gap-2">
@@ -61,26 +59,25 @@ export default async function PlayerPage({
           ←
         </Link>
         <Logo wordmark={false} />
-        <LiveDot live={player.live} playerId={player.id} />
+        <LiveDot live={player.live} stale={player.stale} playerId={player.id} />
       </header>
-      <section className="mt-4 overflow-hidden rounded-3xl bg-gradient-to-br from-[#12386f] to-card p-4">
-        <div className="flex gap-3">
-          <Portrait name={player.name} seed={player.slug} className="h-40 w-32" />
-          <div className="min-w-0 flex-1 rounded-2xl bg-pitch/70 p-3">
-            <p className="text-xs text-muted">Player price</p>
-            <p className="num wrap-anywhere text-[clamp(1.5rem,8vw,1.875rem)] font-bold leading-tight">
-              <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
+      <section className="mt-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="wrap-anywhere text-2xl font-bold leading-tight">{player.name}</h1>
+            <p className="mt-1 text-xs text-muted">
+              INDIA · {roleLabel(player.role).toUpperCase()}
+              {player.jerseyNumber ? ` · #${player.jerseyNumber}` : ""}
             </p>
-            <p className={`text-sm ${up ? "text-gain" : "text-loss"}`}>
-              <PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />
-            </p>
-            <p className="text-xs text-muted">{up ? "Higher across the recent window" : "Lower across the recent window"} · Simulated inputs</p>
           </div>
+          <Portrait name={player.name} seed={player.slug} className="h-14 w-12 shrink-0" />
         </div>
-        <h1 className="wrap-anywhere mt-3 text-[clamp(1.45rem,7vw,1.875rem)] font-bold uppercase leading-tight">{player.name}</h1>
-        <p className="mt-1 text-xs text-muted">
-          INDIA · {roleLabel(player.role).toUpperCase()}
-          {player.jerseyNumber ? ` · #${player.jerseyNumber}` : ""}
+        <p className="num mt-4 text-4xl font-bold leading-none">
+          <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
+        </p>
+        <p className="mt-1 text-sm">
+          <PriceText playerId={player.id} field="change" changePaise={player.changePaise} changePercent={player.changePercent} />
+          <span className="ml-1 text-muted">Today</span>
         </p>
         {user ? (
           <div className="mt-3">
@@ -96,12 +93,7 @@ export default async function PlayerPage({
       </dl>
       <DayRange playerId={player.id} lowPaise={player.lowPaise} highPaise={player.highPaise} midPaise={player.midPaise} />
       <div className="mt-4">
-        <PriceChart playerId={player.id} initial={history.points} />
-        {history.note ? <p className="mt-2 text-xs text-muted">{history.note}</p> : null}
-        <p className="mt-2 text-xs text-muted">The chart shows the quoted price.</p>
-        <BittuNote pose="pointUp" className="mt-2">
-          The quote stays in the chart. Buy and sell prices already include the spread.
-        </BittuNote>
+        <PriceChart playerId={player.id} initial={history.points} initialNote={history.note} />
       </div>
       {player.pulse ? (
         <PulsePanel
