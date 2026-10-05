@@ -71,6 +71,7 @@ test("password fallback stays available until real providers are configured", ()
   const flags = authFlags({ NODE_ENV: "production" } as NodeJS.ProcessEnv);
   expect(flags.legacyPasswordEnabled).toBe(true);
   expect(flags.googleEnabled).toBe(false);
+  expect(flags.appleEnabled).toBe(false);
   expect(flags.phoneOtpEnabled).toBe(false);
   expect(flags.emailOtpEnabled).toBe(false);
   const simulated = authFlags({
@@ -82,10 +83,12 @@ test("password fallback stays available until real providers are configured", ()
   expect(simulated.phoneOtpEnabled).toBe(false);
   expect(simulated.emailOtpEnabled).toBe(false);
   expect(simulated.googleEnabled).toBe(false);
+  expect(simulated.appleEnabled).toBe(false);
   const local = authFlags({ NODE_ENV: "development", DEV_AUTH_ENABLED: "true" } as NodeJS.ProcessEnv);
   expect(local.phoneOtpEnabled).toBe(true);
   expect(local.emailOtpEnabled).toBe(true);
   expect(local.googleEnabled).toBe(false);
+  expect(local.appleEnabled).toBe(false);
 });
 
 test("a guest total uses the displayed quote and never invents ₹1", () => {

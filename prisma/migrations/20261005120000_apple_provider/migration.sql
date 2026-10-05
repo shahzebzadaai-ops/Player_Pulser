@@ -1,0 +1,2 @@
+ALTER TYPE "SignupMethod" ADD VALUE 'APPLE';
+ALTER TYPE "AuthProvider" ADD VALUE 'APPLE';

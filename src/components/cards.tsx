@@ -1,9 +1,10 @@
 import Link from "next/link";
 import type { PlayerView } from "@/server/queries";
+import { GuestBuyLink } from "./guest-trade";
 import { PulseStar } from "./pulse-star";
 import { LiveDot, Portrait, PriceText, Sparkline, roleLabel } from "./visuals";
 
-export function LiveCard({ player, className = "w-[178px] shrink-0" }: { player: PlayerView; className?: string }) {
+export function LiveCard({ player, className = "w-[178px] shrink-0", guest = false }: { player: PlayerView; className?: string; guest?: boolean }) {
   const up = Number(player.changePaise) >= 0;
   return (
     <article className={`${className} rounded-2xl border border-line bg-card p-3`}>
@@ -28,12 +29,17 @@ export function LiveCard({ player, className = "w-[178px] shrink-0" }: { player:
       </p>
       <Sparkline playerId={player.id} values={player.history} positive={up} />
       <div className="mt-2 grid grid-cols-2 gap-1.5">
-        <Link href={`/players/${player.slug}?side=buy#trade`} className="btn-primary press w-full text-xs">
-          BUY
-        </Link>
-        <Link href={`/players/${player.slug}?side=sell#trade`} className="btn-sell press w-full text-xs">
-          SELL
-        </Link>
+        {guest ? (
+          <>
+            <GuestBuyLink playerId={player.id} slug={player.slug} side="BUY" price={player.buyPaise} className="btn-primary press w-full text-xs">BUY</GuestBuyLink>
+            <GuestBuyLink playerId={player.id} slug={player.slug} side="SELL" price={player.sellPaise} className="btn-sell press w-full text-xs">SELL</GuestBuyLink>
+          </>
+        ) : (
+          <>
+            <Link href={`/players/${player.slug}?side=buy#trade`} className="btn-primary press w-full text-xs">BUY</Link>
+            <Link href={`/players/${player.slug}?side=sell#trade`} className="btn-sell press w-full text-xs">SELL</Link>
+          </>
+        )}
       </div>
     </article>
   );

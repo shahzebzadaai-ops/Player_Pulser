@@ -3,6 +3,7 @@ import { BannerSlot } from "@/components/banner-slot";
 import { LiveCard, MoverCard, Notice, SectionHead } from "@/components/cards";
 import { MarketPulse } from "@/components/price-display";
 import { Logo, roleLabel } from "@/components/visuals";
+import { getCurrentUser } from "@/server/current-user";
 import { listPlayers } from "@/server/queries";
 
 export const metadata = { title: "Market" };
@@ -13,6 +14,7 @@ export default async function MarketPage({
   searchParams: Promise<{ q?: string; role?: string; live?: string; sort?: string }>;
 }) {
   const params = await searchParams;
+  const user = await getCurrentUser();
   const market = await listPlayers();
   const query = (params.q ?? "").trim().toLowerCase();
   let players = market.players.filter((player) => {
@@ -77,7 +79,7 @@ export default async function MarketPage({
         <Notice />
         <section>
           <SectionHead title="Live now" href="/market?live=1" />
-          <div className="snap-row">{market.players.filter((player) => player.live).slice(0, 8).map((player) => <LiveCard key={player.id} player={player} />)}</div>
+          <div className="snap-row">{market.players.filter((player) => player.live).slice(0, 8).map((player) => <LiveCard key={player.id} player={player} guest={!user} />)}</div>
         </section>
         <section>
           <SectionHead title="Top gainers" href="/market?sort=gainers" />
@@ -103,7 +105,7 @@ export default async function MarketPage({
       ) : (
         <div className="mt-4 grid grid-cols-2 gap-3">
           {players.map((player) => (
-            <LiveCard key={player.id} player={player} className="w-full" />
+            <LiveCard key={player.id} player={player} className="w-full" guest={!user} />
           ))}
         </div>
       )}

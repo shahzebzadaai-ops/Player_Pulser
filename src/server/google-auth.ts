@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { cookies } from "next/headers";
 import { Prisma } from "@prisma/client";
 import { authFlags } from "@/domain/auth-flags";
+import { googleSetupMessage } from "@/domain/provider-setup";
 import { googleAccountDecision, normalizeEmail } from "@/domain/identities";
 import { linkVisitor, recordEvent } from "./attribution";
 import { attachIdentity } from "./identities";
@@ -32,8 +33,9 @@ function cookieOptions() {
 }
 
 export async function beginGoogle(request: Request): Promise<Response> {
-  if (!authFlags().googleEnabled || !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-    return json({ error: { code: "NOT_FOUND", message: "Not found." } }, 404);
+  const setup = googleSetupMessage(process.env, new URL(request.url).origin);
+  if (setup || !authFlags().googleEnabled || !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return json({ error: { code: "NOT_CONFIGURED", message: setup ?? "Google sign-in is not configured." } }, 503);
   }
   const state = randomBytes(16).toString("base64url");
   const jar = await cookies();

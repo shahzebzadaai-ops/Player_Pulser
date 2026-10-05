@@ -80,7 +80,7 @@ export default async function LandingPage() {
       </ul>
       <div className="mt-4">
         {players.length > 0 ? (
-          <FeaturedPlayerHero players={selectFeaturedPlayers(players).map(({ player, reason }) => ({ ...player, reason }))} tradeHref="player" />
+          <FeaturedPlayerHero players={selectFeaturedPlayers(players).map(({ player, reason }) => ({ ...player, reason }))} tradeHref="player" signedIn={Boolean(user)} />
         ) : (
           <p className="rounded-2xl bg-card p-4 text-sm text-muted">Prices appear after the local database is seeded.</p>
         )}
@@ -96,7 +96,7 @@ export default async function LandingPage() {
         <h2 className="text-lg font-semibold">Top movers</h2>
         <div className="mt-3 grid grid-cols-2 gap-3">
           {movers.map((player) => (
-            <LiveCard key={player.id} player={player} className="min-w-0 w-full" />
+            <LiveCard key={player.id} player={player} className="min-w-0 w-full" guest={!user} />
           ))}
         </div>
       </section>

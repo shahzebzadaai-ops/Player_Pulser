@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { AUTH_INTENT_COOKIE, AUTH_LINK_COOKIE, readAuthIntent, signAuthIntent, type AuthIntent } from "@/domain/auth-intent";
 import { readGoogleLink, signGoogleLink, type GoogleLink } from "@/domain/google-link";
+import { readProviderProfile, signProviderProfile, type ProviderProfile } from "@/domain/provider-profile";
 import { authSecret } from "./auth";
 
 const options = {
@@ -56,4 +57,21 @@ export async function currentGoogleSignup(): Promise<GoogleLink | null> {
 export async function clearGoogleSignup(): Promise<void> {
   const jar = await cookies();
   jar.delete(SIGNUP_COOKIE);
+}
+
+const APPLE_SIGNUP_COOKIE = "pp_apple_signup";
+
+export async function saveAppleSignup(link: ProviderProfile): Promise<void> {
+  const jar = await cookies();
+  jar.set(APPLE_SIGNUP_COOKIE, signProviderProfile(link, authSecret()), options);
+}
+
+export async function currentAppleSignup(): Promise<ProviderProfile | null> {
+  const jar = await cookies();
+  return readProviderProfile(jar.get(APPLE_SIGNUP_COOKIE)?.value, authSecret());
+}
+
+export async function clearAppleSignup(): Promise<void> {
+  const jar = await cookies();
+  jar.delete(APPLE_SIGNUP_COOKIE);
 }

@@ -6,6 +6,9 @@ import { AuthSheet } from "./auth-sheet";
 
 type Flags = {
   googleEnabled: boolean;
+  appleEnabled: boolean;
+  googleSetupMessage: string | null;
+  appleSetupMessage: string | null;
   phoneOtpEnabled: boolean;
   emailOtpEnabled: boolean;
   legacyPasswordEnabled: boolean;
@@ -20,11 +23,13 @@ export function AuthOverlay({ flags }: { flags: Flags }) {
   if (!open || !visibleAuthParts(open).includes("sheet")) return null;
   const notice = params.get("link") === "1"
     ? "This Google account matches an existing email. Sign in with your current method to link it."
+    : params.get("link") === "apple"
+      ? "This Apple account matches an existing email. Sign in with your current method to link it."
     : params.get("error") === "demo"
-      ? "That Google account cannot be used here."
+      ? "That account cannot be used here."
     : params.get("error") === "cancelled"
-      ? "Google sign-in was cancelled."
-      : params.get("error") === "google"
+      ? "Sign-in was cancelled."
+      : params.get("error") === "google" || params.get("error") === "apple"
         ? "We couldn't sign you in. Please try again."
         : null;
 
@@ -42,7 +47,7 @@ export function AuthOverlay({ flags }: { flags: Flags }) {
       flags={flags}
       open
       notice={notice}
-      initialStep={params.get("passkey") === "1" ? "passkey" : params.get("google") === "1" ? "google" : params.get("profile") === "1" ? "profile" : undefined}
+      initialStep={params.get("passkey") === "1" ? "passkey" : params.get("google") === "1" ? "google" : params.get("apple") === "1" ? "apple" : params.get("profile") === "1" ? "profile" : undefined}
       onClose={close}
       onSwitchMode={switchMode}
     />

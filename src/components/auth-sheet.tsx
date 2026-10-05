@@ -7,16 +7,19 @@ import { visibleAuthParts } from "@/domain/auth-surface";
 import { normalizeInternationalPhone } from "@/domain/identities";
 import { passkeyButtonVisible } from "@/domain/passkey";
 import { Logo } from "./visuals";
-import { GoogleFinishForm, SignupForm } from "./signup-form";
+import { GoogleFinishForm, SignupForm, WelcomeAuth } from "./signup-form";
 
 type Flags = {
   googleEnabled: boolean;
+  appleEnabled: boolean;
+  googleSetupMessage: string | null;
+  appleSetupMessage: string | null;
   phoneOtpEnabled: boolean;
   emailOtpEnabled: boolean;
   legacyPasswordEnabled: boolean;
 };
 
-type Step = "register" | "google" | "methods" | "phone" | "email" | "code" | "profile" | "password" | "passkey";
+type Step = "welcome" | "details" | "google" | "apple" | "methods" | "phone" | "email" | "code" | "profile" | "password" | "passkey";
 
 export function AuthSheet({
   mode,
@@ -37,8 +40,8 @@ export function AuthSheet({
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const ignoreClose = useRef(true);
-  const modern = flags.googleEnabled || flags.phoneOtpEnabled || flags.emailOtpEnabled;
-  const [step, setStep] = useState<Step>(initialStep ?? (mode === "signup" ? "register" : modern ? "methods" : "password"));
+  const [step, setStep] = useState<Step>(initialStep ?? "welcome");
+  const [knownAccount, setKnownAccount] = useState(false);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [channel, setChannel] = useState<"PHONE" | "EMAIL">("PHONE");
@@ -204,13 +207,14 @@ export function AuthSheet({
     event.preventDefault();
     setPending(true);
     setMessage(null);
-    const response = await fetch(mode === "signup" ? "/api/auth/signup" : "/api/auth/login", {
+    const signingIn = knownAccount || mode === "login";
+    const response = await fetch(signingIn ? "/api/auth/login" : "/api/auth/signup", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(
-        mode === "signup"
-          ? { method: identifier.includes("@") ? "email" : "phone", phone: identifier, email: identifier, password, displayName: [givenName, familyName].filter(Boolean).join(" ") || "Cricket Fan", givenName, familyName, acceptedTerms: agreed, acceptedAge: agreed }
-          : { identifier, password },
+        signingIn
+          ? { identifier, password }
+          : { method: identifier.includes("@") ? "email" : "phone", phone: identifier, email: identifier, password, displayName: [givenName, familyName].filter(Boolean).join(" ") || "Cricket Fan", givenName, familyName, acceptedTerms: agreed, acceptedAge: agreed },
       ),
     });
     const body = (await response.json()) as { error?: { message: string } };
@@ -343,9 +347,62 @@ export function AuthSheet({
     }).catch(() => setMessage("Google sign-in expired. Start again."));
   }, [step]);
 
+  useEffect(() => {
+    if (step !== "apple") return;
+    void fetch("/api/auth/apple/pending").then(async (response) => {
+      if (!response.ok) return;
+      const body = (await response.json()) as { pending?: boolean; email?: string; givenName?: string | null; familyName?: string | null };
+      if (!body.pending) {
+        setMessage("Apple sign-in expired. Start again.");
+        return;
+      }
+      setGoogleEmail(body.email ?? "");
+      setGivenName((current) => current || body.givenName || "");
+      setFamilyName((current) => current || body.familyName || "");
+    }).catch(() => setMessage("Apple sign-in expired. Start again."));
+  }, [step]);
+
+  async function continueEmail(nextEmail: string) {
+    setPending(true);
+    setMessage(null);
+    const response = await fetch("/api/auth/email/continue", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: nextEmail }),
+    });
+    const body = (await response.json()) as { next?: string; error?: { message: string } };
+    setPending(false);
+    if (!response.ok) {
+      setMessage(body.error?.message ?? "Enter a valid email address.");
+      return;
+    }
+    setEmail(nextEmail.trim());
+    if (body.next === "login") {
+      setKnownAccount(true);
+      setIdentifier(nextEmail.trim());
+      setStep("password");
+      return;
+    }
+    if (body.next === "google") {
+      setMessage("This email already uses Google. Continue with Google.");
+      return;
+    }
+    if (body.next === "apple") {
+      setMessage("This email already uses Apple. Continue with Apple.");
+      return;
+    }
+    if (body.next === "phone") {
+      setMessage("This email is connected to a phone sign-in. Use Phone or passkey.");
+      return;
+    }
+    setKnownAccount(false);
+    setStep("details");
+  }
+
   if (!visibleAuthParts(open).includes("sheet")) return null;
-  const title = step === "passkey" ? "Sign in faster next time" : step === "google" ? "Finish Google sign-up" : step === "profile" ? "Complete your PlayerPulser profile" : mode === "signup" ? "Create an account" : "Sign in";
-  const copy = step === "passkey" ? "Use Face ID, Touch ID, or your device unlock on this phone or computer." : step === "google" ? "Your declaration is recorded with the account. It is not a verified age check." : step === "profile" ? "Let's finish setting up your PlayerPulser account." : mode === "signup" ? "Welcome to PlayerPulser" : "Trade the players you follow.";
+  const signingIn = knownAccount || mode === "login";
+  const title = step === "passkey" ? "Sign in faster next time" : step === "google" ? "Finish Google sign-up" : step === "apple" ? "Finish Apple sign-up" : step === "details" ? "Create your account" : step === "password" ? "Sign in" : step === "profile" ? "Complete your PlayerPulser profile" : "Sign in";
+  const copy = step === "passkey" ? "Use Face ID, Touch ID, or your device unlock on this phone or computer." : step === "google" || step === "apple" ? "Your declaration is recorded with the account. It is not a verified age check." : step === "details" ? "Add the details for your new account." : step === "password" ? "Enter the password for this account." : step === "profile" ? "Let's finish setting up your PlayerPulser account." : "Trade the players you follow.";
 
   return (
     <dialog
@@ -364,8 +421,8 @@ export function AuthSheet({
       }}
     >
       <div className="auth-sheet-bar">
-        {step !== "methods" && step !== "register" && step !== "google" && step !== "passkey" && !(step === "password" && !modern) ? (
-          <button type="button" className="min-h-11 min-w-11 rounded-full bg-pitch text-sm" aria-label="Back" onClick={() => setStep("methods")}>
+        {step === "details" || step === "password" || step === "code" || step === "methods" ? (
+          <button type="button" className="min-h-11 min-w-11 rounded-full bg-pitch text-sm" aria-label="Back" onClick={() => setStep("welcome")}>
             Back
           </button>
         ) : null}
@@ -384,14 +441,42 @@ export function AuthSheet({
         </button>
       </div>
       <div className="auth-sheet-body">
-      <h2 id="auth-sheet-title" className="text-2xl font-bold">{title}</h2>
-      <p className="mt-2 text-sm text-muted">{copy}</p>
-      <p className="mt-3 min-h-5 text-sm text-loss" aria-live="polite">{message}</p>
-      {step === "register" ? (
-        <SignupForm
-          googleEnabled={flags.googleEnabled}
+      {step === "welcome" ? (
+        <WelcomeAuth
+          pending={pending}
+          notice={message}
           phoneEnabled={flags.phoneOtpEnabled}
           passkeyReady={passkeyReady}
+          onGoogle={() => {
+            track("auth_google_selected");
+            if (flags.googleSetupMessage || !flags.googleEnabled) {
+              setMessage(flags.googleSetupMessage ?? "Google sign-in is not configured.");
+              return;
+            }
+            window.location.assign("/api/auth/google/start");
+          }}
+          onApple={() => {
+            track("auth_apple_selected");
+            if (flags.appleSetupMessage || !flags.appleEnabled) {
+              setMessage(flags.appleSetupMessage ?? "Apple sign-in is not configured.");
+              return;
+            }
+            window.location.assign("/api/auth/apple/start");
+          }}
+          onEmail={continueEmail}
+          onPhone={(phoneNumber) => void requestCode("PHONE", phoneNumber)}
+          onPasskey={() => void signInWithPasskey()}
+        />
+      ) : (
+        <>
+          <h2 id="auth-sheet-title" className="text-2xl font-bold">{title}</h2>
+          <p className="mt-2 text-sm text-muted">{copy}</p>
+          <p className="mt-3 min-h-5 text-sm text-loss" aria-live="polite">{message}</p>
+        </>
+      )}
+      {step === "details" ? (
+        <SignupForm
+          email={email}
           pending={pending}
           onCreate={async (values) => {
             setPending(true);
@@ -404,7 +489,7 @@ export function AuthSheet({
               headers: { "content-type": "application/json" },
               body: JSON.stringify({
                 method: "email",
-                email: values.email,
+                email,
                 password: values.password,
                 givenName: values.givenName.trim(),
                 familyName: values.familyName.trim(),
@@ -422,12 +507,6 @@ export function AuthSheet({
             }
             await offerPasskeyOrContinue();
           }}
-          onPhone={(phoneNumber) => {
-            setAgreed(true);
-            void requestCode("PHONE", phoneNumber);
-          }}
-          onPasskey={() => void signInWithPasskey()}
-          onLogin={() => onSwitchMode?.("login")}
         />
       ) : null}
       {step === "google" ? (
@@ -455,6 +534,38 @@ export function AuthSheet({
             setPending(false);
             if (!response.ok) {
               setMessage(body.error?.message ?? "We couldn't finish Google sign-up.");
+              return;
+            }
+            await offerPasskeyOrContinue();
+          }}
+        />
+      ) : null}
+      {step === "apple" ? (
+        <GoogleFinishForm
+          provider="Apple"
+          email={googleEmail}
+          initialGivenName={givenName}
+          initialFamilyName={familyName}
+          pending={pending}
+          onSubmit={async (values) => {
+            setPending(true);
+            setMessage(null);
+            const response = await fetch("/api/auth/apple/complete", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                givenName: values.givenName.trim(),
+                familyName: values.familyName.trim(),
+                username: values.username.trim() || undefined,
+                referralCode: values.referral.trim() || undefined,
+                acceptedAge: true,
+                acceptedTerms: true,
+              }),
+            });
+            const body = (await response.json()) as { error?: { message: string } };
+            setPending(false);
+            if (!response.ok) {
+              setMessage(body.error?.message ?? "We couldn't finish Apple sign-up.");
               return;
             }
             await offerPasskeyOrContinue();
@@ -531,8 +642,8 @@ export function AuthSheet({
             </form>
           )}
           <p className="text-center text-xs text-muted">By continuing you agree to the Terms of Use and Privacy Policy.</p>
-          {modern && flags.legacyPasswordEnabled ? (
-            <button type="button" className="min-h-11 text-sm text-muted" onClick={() => setStep("password")}>Other sign-in options</button>
+          {flags.legacyPasswordEnabled ? (
+            <button type="button" className="min-h-11 text-sm text-muted" onClick={() => setStep("password")}>Password</button>
           ) : null}
           {mode === "signup" ? (
             <button type="button" className="min-h-11 text-center text-sm text-india" onClick={() => onSwitchMode?.("login")}>Already have an account? Sign in</button>
@@ -567,6 +678,7 @@ export function AuthSheet({
               />
             ))}
           </div>
+          <Consent agreed={agreed} onChange={setAgreed} />
           <button className="btn-primary" type="submit" disabled={pending}>{pending ? "Verifying…" : "Continue"}</button>
           <button
             className="btn-secondary"
@@ -586,11 +698,10 @@ export function AuthSheet({
           </label>
           <label className="text-sm">
             Password
-            <input className="mt-1 min-h-11 w-full rounded-2xl bg-pitch px-3" type="password" autoComplete={mode === "signup" ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} />
+            <input className="mt-1 min-h-11 w-full rounded-2xl bg-pitch px-3" type="password" autoComplete={signingIn ? "current-password" : "new-password"} value={password} onChange={(event) => setPassword(event.target.value)} />
           </label>
-          {mode === "signup" ? <Consent agreed={agreed} onChange={setAgreed} /> : null}
-          <button className="btn-primary w-full whitespace-nowrap" type="submit" disabled={pending}>{mode === "signup" ? "Create account" : "Sign in"}</button>
-          {modern ? <button className="btn-secondary w-full" type="button" onClick={() => setStep("methods")}>Back</button> : null}
+          {signingIn ? null : <Consent agreed={agreed} onChange={setAgreed} />}
+          <button className="btn-primary w-full whitespace-nowrap" type="submit" disabled={pending}>{signingIn ? "Sign in" : "Create account"}</button>
         </form>
       ) : null}
       {step === "profile" ? (

@@ -23,6 +23,7 @@ enum AccountStatus {
 
 enum SignupMethod {
   GOOGLE
+  APPLE
   PHONE
   EMAIL
   PASSWORD
@@ -30,6 +31,7 @@ enum SignupMethod {
 
 enum AuthProvider {
   GOOGLE
+  APPLE
   PHONE
   EMAIL
   PASSKEY

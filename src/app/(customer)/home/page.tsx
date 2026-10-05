@@ -90,7 +90,7 @@ export default async function HomePage() {
         </div>
       </section>
       <div className="mt-5">
-        <FeaturedPlayerHero players={featured} tradeHref="player" />
+        <FeaturedPlayerHero players={featured} tradeHref="player" signedIn />
       </div>
       <MarketPulse />
       <PlayerTicker players={market.players} />

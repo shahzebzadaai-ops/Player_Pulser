@@ -262,6 +262,10 @@ export async function verifyDevOtp(
     await prisma.otpChallenge.update({ where: { id: challenge.id }, data: { attempts: { increment: 1 } } });
     throw new AppError("INVALID_OTP", "That code was not accepted.", 401);
   }
+  const existingBeforeConsent = await prisma.user.findUnique({ where: { phone } });
+  if (!existingBeforeConsent && !consent?.sessionUserId && !ageConsentAccepted({ acceptedAge: consent?.acceptedAge, acceptedTerms: consent?.accepted })) {
+    throw new AppError("CONSENT", AGE_CONSENT_MESSAGE, 400);
+  }
   const consumed = await prisma.otpChallenge.updateMany({
     where: { id: challenge.id, consumedAt: null, codeHash: hash, expiresAt: { gt: new Date() } },
     data: { consumedAt: new Date() },
