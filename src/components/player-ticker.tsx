@@ -23,7 +23,7 @@ export function PlayerTicker({
   if (players.length === 0) return null;
   const row = (copy: string) =>
     players.map((player) => (
-      <span key={`${player.id}-${copy}`} className="inline-flex items-center gap-2 whitespace-nowrap">
+      <span key={`${player.id}-${copy}`} className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap">
         <LiveDot live={player.live} playerId={copy === "a" ? player.id : undefined} />
         <span className="font-medium">{player.shortName}</span>
         <PriceText playerId={player.id} field="mid" paise={player.midPaise} />

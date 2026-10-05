@@ -191,9 +191,10 @@ select {
 }
 
 .marquee-window {
+  width: 100%;
   max-width: 100%;
   min-width: 0;
-  overflow-x: hidden;
+  overflow: hidden;
   scrollbar-width: none;
 }
 
@@ -205,28 +206,37 @@ select {
 .market-marquee,
 .player-marquee {
   display: flex;
+  flex-wrap: nowrap;
   width: max-content;
   will-change: transform;
-  animation: ticker 50s linear infinite;
+  transform: translate3d(0, 0, 0);
+  animation: ticker 52s linear infinite;
 }
 
 .player-marquee {
-  animation-duration: 65s;
+  animation-duration: 70s;
 }
 
 .ticker-group {
   display: flex;
   flex-shrink: 0;
+  flex-wrap: nowrap;
   align-items: center;
+  width: max-content;
+}
+
+.ticker-group > * {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 @media (min-width: 768px) {
   .market-marquee {
-    animation-duration: 55s;
+    animation-duration: 48s;
   }
 
   .player-marquee {
-    animation-duration: 70s;
+    animation-duration: 65s;
   }
 }
 

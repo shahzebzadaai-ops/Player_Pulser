@@ -181,7 +181,7 @@ function PulseItem({ quote }: { quote: ExternalQuote }) {
   const up = (quote.changePercent ?? 0) >= 0;
   const direction = quote.changePercent === null ? "text-muted" : up ? "text-gain" : "text-loss";
   return (
-    <span title={quote.source} className="inline-flex items-center gap-2 whitespace-nowrap text-xs">
+    <span title={quote.source} className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap text-xs">
       <span className="font-semibold tracking-wide">{quote.label}</span>
       <PriceFlash value={quote.price ?? Number.NaN}>
         <span className="num font-semibold">{formatExternalPrice(quote)}</span>
