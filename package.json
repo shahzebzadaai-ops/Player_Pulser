@@ -16,6 +16,8 @@
     "db:seed": "prisma db seed",
     "db:production-seed": "tsx prisma/production-seed.ts",
     "admin:create": "tsx scripts/create-admin.ts",
+    "admin:bootstrap-owner": "tsx scripts/bootstrap-owner.ts",
+    "admin:create-sam": "tsx scripts/create-sam.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate"
   },

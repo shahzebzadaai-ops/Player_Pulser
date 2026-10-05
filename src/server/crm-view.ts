@@ -12,6 +12,7 @@ export async function loadCrmUsers(role?: "CUSTOMER" | "ADMIN") {
     where: role ? { role } : undefined,
     include: {
       visitors: { orderBy: { firstSeenAt: "asc" }, take: 1, select: { firstTouchId: true, lastTouchId: true } },
+      staffAccount: { select: { staffRole: true } },
       bonuses: { where: { source: "WELCOME" }, select: { id: true }, take: 1 },
       payments: { where: { kind: "DEPOSIT", status: "SETTLED" }, select: { id: true }, take: 1 },
       trades: { select: { id: true }, take: 1 },

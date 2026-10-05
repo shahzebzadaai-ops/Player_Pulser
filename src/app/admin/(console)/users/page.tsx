@@ -39,7 +39,11 @@ export default async function AdminUsersPage() {
               doNotCall={user.doNotCall}
             />
             <div className="mt-2">
-              <RoleEditor userId={user.id} role={user.role} />
+              {user.staffAccount?.staffRole === "OWNER" ? (
+                <p className="text-sm font-semibold">OWNER · Protected</p>
+              ) : (
+                <RoleEditor userId={user.id} role={user.role} />
+              )}
             </div>
           </li>
         ))}

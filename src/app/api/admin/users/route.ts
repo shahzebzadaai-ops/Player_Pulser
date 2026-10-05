@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ownerAccountChangeDenied } from "@/domain/admin-access";
 import { AppError } from "@/domain/errors";
 import { requirePermission } from "@/server/access";
 import { clientIp, requireReason, writeAudit } from "@/server/audit";
@@ -17,6 +18,19 @@ export async function POST(request: Request) {
     const { user: admin } = await requirePermission(request, "staff.manage");
     const body = await readBody(request, schema);
     const reason = requireReason(body.reason);
+    const target = await prisma.user.findUnique({ where: { id: body.userId }, include: { staffAccount: true } });
+    const ownerDenial = ownerAccountChangeDenied(target?.staffAccount?.staffRole);
+    if (ownerDenial) {
+      await writeAudit({
+        actorId: admin.id,
+        action: "staff.owner.blocked",
+        entityType: "User",
+        entityId: body.userId,
+        reason,
+        ip: clientIp(request),
+      });
+      throw new AppError("FORBIDDEN", ownerDenial, 403);
+    }
     if (body.role === "CUSTOMER") {
       const admins = await prisma.user.count({ where: { role: "ADMIN" } });
       const target = await prisma.user.findUnique({ where: { id: body.userId } });

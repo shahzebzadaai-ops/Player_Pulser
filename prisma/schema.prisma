@@ -613,6 +613,7 @@ model AuditLog {
 }
 
 enum StaffRole {
+  OWNER
   SUPER_ADMIN
   OPERATIONS_MANAGER
   FINANCE

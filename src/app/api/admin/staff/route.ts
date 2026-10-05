@@ -1,7 +1,8 @@
 import { z } from "zod";
+import { OWNER_ASSIGN_ERROR, staffChangeDenial } from "@/domain/admin-access";
 import { AppError } from "@/domain/errors";
 import { normalizeIndianPhone, passwordIssue } from "@/domain/phone";
-import { isStaffRole, STAFF_ROLES } from "@/domain/permissions";
+import { isAssignableStaffRole, STAFF_ROLES } from "@/domain/permissions";
 import { requirePermission } from "@/server/access";
 import { clientIp, requireReason, writeAudit } from "@/server/audit";
 import { hashPassword } from "@/server/auth";
@@ -14,17 +15,22 @@ const schema = z.discriminatedUnion("action", [
     displayName: z.string().min(2).max(80),
     phone: z.string(),
     password: z.string(),
-    staffRole: z.enum(STAFF_ROLES),
+    staffRole: z.string().min(1),
     reason: z.string(),
   }),
   z.object({
     action: z.literal("role"),
     userId: z.string(),
-    staffRole: z.enum(STAFF_ROLES),
+    staffRole: z.string().min(1),
     active: z.boolean(),
     reason: z.string(),
   }),
 ]);
+
+function assertAssignableRole(role: string): asserts role is (typeof STAFF_ROLES)[number] {
+  if (role === "OWNER") throw new AppError("FORBIDDEN", OWNER_ASSIGN_ERROR, 403);
+  if (!isAssignableStaffRole(role)) throw new AppError("INVALID", "Choose a staff role.", 400);
+}
 
 async function protectLastSuperAdmin(userId: string, nextRole: string, active: boolean) {
   const current = await prisma.staffAccount.findUnique({ where: { userId } });
@@ -37,11 +43,13 @@ async function protectLastSuperAdmin(userId: string, nextRole: string, active: b
 export async function POST(request: Request) {
   return handle(async () => {
     assertSameOrigin(request);
-    const { user } = await requirePermission(request, "staff.manage");
+    const { user, access } = await requirePermission(request, "staff.manage");
     const body = await readBody(request, schema);
     const reason = requireReason(body.reason);
     const ip = clientIp(request);
     if (body.action === "create") {
+      if (body.staffRole === "OWNER") throw new AppError("FORBIDDEN", OWNER_ASSIGN_ERROR, 403);
+      assertAssignableRole(body.staffRole);
       const issue = passwordIssue(body.password);
       if (issue) throw new AppError("INVALID", issue, 400);
       const phone = normalizeIndianPhone(body.phone);
@@ -69,10 +77,30 @@ export async function POST(request: Request) {
       });
       return json({ id: created.id });
     }
-    if (!isStaffRole(body.staffRole)) throw new AppError("INVALID", "Choose a staff role.", 400);
-    await protectLastSuperAdmin(body.userId, body.staffRole, body.active);
     const before = await prisma.staffAccount.findUnique({ where: { userId: body.userId } });
     if (!before) throw new AppError("NOT_FOUND", "That staff account was not found.", 404);
+    const denial = staffChangeDenial({
+      actorUserId: user.id,
+      actorRole: access.staffRole,
+      targetUserId: body.userId,
+      targetRole: before.staffRole,
+      nextRole: body.staffRole,
+      nextActive: body.active,
+    });
+    if (denial) {
+      await writeAudit({
+        actorId: user.id,
+        action: "staff.owner.blocked",
+        entityType: "StaffAccount",
+        entityId: before.id,
+        reason,
+        ip,
+        metadata: { targetUserId: body.userId },
+      });
+      throw new AppError("FORBIDDEN", denial, 403);
+    }
+    assertAssignableRole(body.staffRole);
+    await protectLastSuperAdmin(body.userId, body.staffRole, body.active);
     if (!body.active) {
       const admins = await prisma.user.count({ where: { role: "ADMIN" } });
       if (admins <= 1) throw new AppError("LAST_ADMIN", "The last admin cannot be removed.", 409);
@@ -83,7 +111,7 @@ export async function POST(request: Request) {
     });
     await writeAudit({
       actorId: user.id,
-      action: "staff.permission",
+      action: before.active !== staff.active ? (staff.active ? "staff.enable" : "staff.disable") : "staff.role",
       entityType: "StaffAccount",
       entityId: staff.id,
       before: { staffRole: before.staffRole, active: before.active },

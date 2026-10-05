@@ -54,7 +54,13 @@ export const STAFF_ROLES = [
   "VIP_MANAGER",
 ] as const;
 
-export type StaffRoleName = (typeof STAFF_ROLES)[number];
+export const OWNER_ROLE = "OWNER" as const;
+
+export type StaffRoleName = (typeof STAFF_ROLES)[number] | typeof OWNER_ROLE;
+
+export function isAssignableStaffRole(value: string): value is (typeof STAFF_ROLES)[number] {
+  return (STAFF_ROLES as readonly string[]).includes(value);
+}
 
 const OPERATIONS: Permission[] = PERMISSIONS.filter(
   (permission) =>
@@ -65,6 +71,7 @@ const OPERATIONS: Permission[] = PERMISSIONS.filter(
 );
 
 export const ROLE_PERMISSIONS: Record<StaffRoleName, readonly Permission[]> = {
+  OWNER: PERMISSIONS,
   SUPER_ADMIN: PERMISSIONS,
   OPERATIONS_MANAGER: OPERATIONS,
   FINANCE: [
@@ -116,7 +123,7 @@ export const ROLE_PERMISSIONS: Record<StaffRoleName, readonly Permission[]> = {
 };
 
 export function isStaffRole(value: string): value is StaffRoleName {
-  return (STAFF_ROLES as readonly string[]).includes(value);
+  return value === OWNER_ROLE || isAssignableStaffRole(value);
 }
 
 export function permissionsFor(role: StaffRoleName): Permission[] {

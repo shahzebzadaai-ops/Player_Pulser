@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import type { User } from "@prisma/client";
 import { z } from "zod";
 import { AppError } from "@/domain/errors";
+import { isInvestorDemoIdentity } from "@/domain/investor-demo";
 import { assertAdmin, destroySession, issueSession, SESSION_COOKIE, tokenFromCookieHeader, userFromToken } from "./auth";
 
 export function json(data: unknown, status = 200) {
@@ -82,6 +83,7 @@ export async function requireUser(request: Request): Promise<User> {
 export async function requireAdminUser(request: Request): Promise<User> {
   const user = await actor(request);
   assertAdmin(user);
+  if (isInvestorDemoIdentity(user)) throw new AppError("FORBIDDEN", "Admin access is required.", 403);
   return user as User;
 }
 

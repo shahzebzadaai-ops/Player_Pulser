@@ -1,15 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { unsignedAdminRedirect } from "@/domain/admin-access";
 import { attachVisitCookies } from "@/server/visit-cookies";
-
-const PROTECTED = ["/admin"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const needsAuth = PROTECTED.some((path) => pathname === path || pathname.startsWith(`${path}/`));
   const signedIn = Boolean(request.cookies.get("pp_session")?.value);
-  if (needsAuth && !signedIn) {
+  const destination = unsignedAdminRedirect(pathname, signedIn);
+  if (destination) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = destination;
+    url.search = "";
     return attachVisitCookies(request, NextResponse.redirect(url));
   }
   return attachVisitCookies(request, NextResponse.next());
