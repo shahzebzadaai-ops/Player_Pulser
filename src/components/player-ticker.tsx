@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { LiveDot, PriceText } from "./visuals";
 
 export function PlayerTicker({
@@ -8,7 +8,6 @@ export function PlayerTicker({
 }: {
   players: { id: string; shortName: string; live: boolean; midPaise: string; changePaise: string; changePercent: number }[];
 }) {
-  const [paused, setPaused] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const node = scroller.current;
@@ -24,7 +23,7 @@ export function PlayerTicker({
   if (players.length === 0) return null;
   const row = (copy: string) =>
     players.map((player) => (
-      <span key={`${player.id}-${copy}`} className="inline-flex items-center gap-2 whitespace-nowrap">
+      <span key={`${player.id}-${copy}`} className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap">
         <LiveDot live={player.live} playerId={copy === "a" ? player.id : undefined} />
         <span className="font-medium">{player.shortName}</span>
         <PriceText playerId={player.id} field="mid" paise={player.midPaise} />
@@ -38,15 +37,10 @@ export function PlayerTicker({
       tabIndex={0}
       role="region"
       aria-label="Player prices. Use arrow keys to scroll."
-      onPointerEnter={() => setPaused(true)}
-      onPointerLeave={() => setPaused(false)}
-      onPointerDown={() => setPaused(true)}
-      onPointerUp={() => setPaused(false)}
-      onPointerCancel={() => setPaused(false)}
     >
-      <div className="player-marquee text-xs" style={{ animationPlayState: paused ? "paused" : "running" }}>
-        <div className="flex items-center gap-16 pr-16">{row("a")}</div>
-        <div className="flex items-center gap-16 pr-16" aria-hidden>
+      <div className="player-marquee text-xs">
+        <div className="ticker-group gap-16 pr-16">{row("a")}</div>
+        <div className="ticker-group gap-16 pr-16" aria-hidden>
           {row("b")}
         </div>
       </div>

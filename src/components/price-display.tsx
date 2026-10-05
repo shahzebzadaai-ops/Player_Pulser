@@ -160,7 +160,7 @@ function PulseItem({ quote }: { quote: ExternalQuote }) {
   const up = (quote.changePercent ?? 0) >= 0;
   const direction = quote.changePercent === null ? "text-muted" : up ? "text-gain" : "text-loss";
   return (
-    <span title={quote.source} className="inline-flex items-center gap-2 whitespace-nowrap text-xs">
+    <span title={quote.source} className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap text-xs">
       <span className="font-semibold tracking-wide">{quote.label}</span>
       <PriceFlash value={quote.price ?? Number.NaN}>
         <span className="num font-semibold">{formatExternalPrice(quote)}</span>
@@ -205,7 +205,6 @@ export function DayRange({
 
 export function MarketPulse() {
   const markets = useExternalMarkets();
-  const [paused, setPaused] = useState(false);
   const quotes = markets.length > 0 ? markets : PLACEHOLDER;
   return (
     <section aria-label="Global market pulse" className="mt-3 rounded-2xl border border-line bg-card px-3 py-2">
@@ -223,19 +222,14 @@ export function MarketPulse() {
           event.preventDefault();
           event.currentTarget.scrollBy({ left: event.key === "ArrowRight" ? 96 : -96, behavior: "smooth" });
         }}
-        onPointerEnter={() => setPaused(true)}
-        onPointerLeave={() => setPaused(false)}
-        onPointerDown={() => setPaused(true)}
-        onPointerUp={() => setPaused(false)}
-        onPointerCancel={() => setPaused(false)}
       >
-        <div className="market-marquee items-center" style={{ animationPlayState: paused ? "paused" : "running" }}>
-          <div className="flex items-center gap-8 pr-8">
+        <div className="market-marquee items-center">
+          <div className="ticker-group gap-8 pr-8">
             {quotes.map((quote) => (
               <PulseItem key={quote.symbol} quote={quote} />
             ))}
           </div>
-          <div className="flex items-center gap-8 pr-8" aria-hidden>
+          <div className="ticker-group gap-8 pr-8" aria-hidden>
             {quotes.map((quote) => (
               <PulseItem key={`${quote.symbol}-copy`} quote={quote} />
             ))}

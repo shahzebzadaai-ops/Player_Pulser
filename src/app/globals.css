@@ -157,9 +157,10 @@ select {
 }
 
 .marquee-window {
+  width: 100%;
   max-width: 100%;
   min-width: 0;
-  overflow-x: hidden;
+  overflow: hidden;
   scrollbar-width: none;
 }
 
@@ -171,12 +172,28 @@ select {
 .market-marquee,
 .player-marquee {
   display: flex;
+  flex-wrap: nowrap;
   width: max-content;
-  animation: ticker 44s linear infinite;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  animation: ticker 52s linear infinite;
 }
 
 .player-marquee {
-  animation-duration: 60s;
+  animation-duration: 70s;
+}
+
+.ticker-group {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  width: max-content;
+}
+
+.ticker-group > * {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 @media (min-width: 768px) {
@@ -186,38 +203,6 @@ select {
 
   .player-marquee {
     animation-duration: 65s;
-  }
-}
-
-@media (max-width: 767px), ((pointer: coarse) and (max-width: 1024px)) {
-  .market-marquee,
-  .player-marquee {
-    animation: none;
-  }
-
-  .marquee-window:has(.player-marquee) {
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .player-marquee > :last-child,
-  .market-marquee > :last-child {
-    display: none;
-  }
-
-  .market-marquee {
-    display: block;
-    width: 100%;
-  }
-
-  .market-marquee > :first-child {
-    display: flex;
-    width: 100%;
-    flex-wrap: wrap;
-    row-gap: 0.35rem;
-    column-gap: 1rem;
-    padding-right: 0;
   }
 }
 
@@ -243,8 +228,8 @@ select {
 }
 
 @keyframes ticker {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
 }
 
 @keyframes hero-fade {
