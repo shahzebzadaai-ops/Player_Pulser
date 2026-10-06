@@ -4,7 +4,23 @@ import { getSeo } from "@/server/seo";
 
 export const dynamic = "force-dynamic";
 
-const PRIVATE_PATHS = ["/admin", "/api", "/login", "/signup", "/wallet", "/home", "/market", "/portfolio", "/players", "/notifications", "/rewards"];
+const PRIVATE_PATHS = [
+  "/admin",
+  "/api",
+  "/preview",
+  "/login",
+  "/signup",
+  "/home",
+  "/market",
+  "/players",
+  "/p",
+  "/portfolio",
+  "/wallet",
+  "/rewards",
+  "/settings",
+  "/notifications",
+  "/help",
+];
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const [seo, headerStore] = await Promise.all([getSeo(), headers()]);
@@ -14,7 +30,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   return {
     rules: {
       userAgent: "*",
-      allow: ["/", "/p/", "/assets/players/", "/terms", "/privacy", "/cookies", "/risk-disclosure", "/bonus-terms", "/payment-policy", "/responsible-use", "/complaints"],
+      allow: ["/", "/coming-soon", "/brand/"],
       disallow: PRIVATE_PATHS,
     },
     sitemap: origin ? `${origin}/sitemap.xml` : undefined,

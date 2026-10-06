@@ -44,21 +44,28 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const host = headerList.get("x-forwarded-host") || headerList.get("host") || "localhost:3001";
   const origin = host.startsWith("localhost") || host.startsWith("127.0.0.1") ? `http://${host}` : `https://${host}`;
   const flags = authFlags();
+  const closed = headerList.get("x-pp-surface") === "public";
   return (
     <html lang="en" className={`${outfit.variable} h-full antialiased`}>
       <body className="min-h-full">
         <GalaxyBackground />
         <PwaRegister />
-        <Suspense fallback={null}>
-          <AttributionBeacon />
-        </Suspense>
-        <PriceStreamProvider>
-          {children}
-          <Suspense fallback={null}>
-            <AuthOverlay flags={{ ...flags, googleSetupMessage: googleSetupMessage(process.env, origin), appleSetupMessage: appleSetupMessage(process.env, origin) }} />
-          </Suspense>
-          <AskBittu />
-        </PriceStreamProvider>
+        {closed ? (
+          children
+        ) : (
+          <>
+            <Suspense fallback={null}>
+              <AttributionBeacon />
+            </Suspense>
+            <PriceStreamProvider>
+              {children}
+              <Suspense fallback={null}>
+                <AuthOverlay flags={{ ...flags, googleSetupMessage: googleSetupMessage(process.env, origin), appleSetupMessage: appleSetupMessage(process.env, origin) }} />
+              </Suspense>
+              <AskBittu />
+            </PriceStreamProvider>
+          </>
+        )}
       </body>
     </html>
   );

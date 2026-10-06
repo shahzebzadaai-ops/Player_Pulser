@@ -53,9 +53,9 @@ export function hashSessionToken(token: string): string {
   return createHash("sha256").update(`${sessionPepper()}:${token}`).digest("hex");
 }
 
-export async function issueSession(userId: string): Promise<{ token: string; expiresAt: Date }> {
+export async function issueSession(userId: string, ttlMs = 30 * 24 * 60 * 60 * 1000): Promise<{ token: string; expiresAt: Date }> {
   const token = randomBytes(32).toString("base64url");
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + ttlMs);
   await prisma.session.create({
     data: { userId, tokenHash: hashSessionToken(token), expiresAt },
   });

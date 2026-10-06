@@ -143,6 +143,7 @@ model User {
   policyAcceptances PolicyAcceptance[]
   abuseFlags   AbuseFlag[]
   newsReads    NewsRead[]
+  previewLinks InvestorPreviewToken[] @relation("PreviewCreator")
 }
 
 model Session {
@@ -154,6 +155,23 @@ model Session {
   user      User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+model InvestorPreviewToken {
+  id               String    @id @default(cuid())
+  tokenHash        String    @unique
+  createdByAdminId String
+  label            String?
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  expiresAt        DateTime  @db.Timestamptz(3)
+  usedAt           DateTime? @db.Timestamptz(3)
+  revokedAt        DateTime? @db.Timestamptz(3)
+  createdIp        String?
+  usedIp           String?
+  creator          User      @relation("PreviewCreator", fields: [createdByAdminId], references: [id])
+
+  @@index([createdByAdminId])
+  @@index([expiresAt])
 }
 
 model OtpChallenge {

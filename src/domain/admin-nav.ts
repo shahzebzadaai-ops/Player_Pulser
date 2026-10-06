@@ -89,6 +89,7 @@ export const ADMIN_GROUPS: NavGroup[] = [
       { label: "Audit Log", href: "/admin/operations/audit", permission: "audit.view" },
       { label: "Feature Controls", href: "/admin/operations/features", permission: "feature.manage" },
       { label: "System Health", href: "/admin/operations/health", permission: "settings.view" },
+      { label: "Investor Preview", href: "/admin/investor-preview", permission: "settings.manage" },
     ],
   },
   {
