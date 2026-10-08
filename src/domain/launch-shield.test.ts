@@ -20,15 +20,17 @@ import {
 const secret = "test-secret-test-secret-test-secret";
 
 describe("launch shield routes", () => {
-  test("public home is the coming soon page and does not render the product", () => {
+  test("the public site renders the product and the proxy does not apply the shield", () => {
     const page = readFileSync("src/app/page.tsx", "utf8");
+    const proxy = readFileSync("src/proxy.ts", "utf8");
     const view = readFileSync("src/components/coming-soon.tsx", "utf8");
     expect(COMING_SOON_HEADLINE).toBe("Feel the Pulse of the Game.");
     expect(view).toContain("COMING_SOON_HEADLINE");
-    expect(view).not.toContain("PriceText");
-    expect(page).not.toContain("listPlayers");
+    expect(page).toContain("listPlayers");
+    expect(page).not.toContain("ComingSoon");
+    expect(proxy).not.toContain("shieldAccess");
+    expect(proxy).not.toContain("PREVIEW_COOKIE");
     expect(shieldAccess({ pathname: "/", previewValid: false }).action).toBe("next");
-    expect(shieldAccess({ pathname: "/coming-soon", previewValid: false }).surface).toBe("public");
   });
 
   test("customer routes stay closed without a preview session", () => {
