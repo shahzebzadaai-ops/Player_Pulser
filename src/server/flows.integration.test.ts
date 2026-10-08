@@ -238,16 +238,40 @@ test("bonus conversion, expiry, and a duplicate deposit webhook", async () => {
   await balanced();
 });
 
-test("a failed withdrawal returns the hold and a small balance cannot be swept", async () => {
+test("a withdrawal can take the full cash balance and a failed payout returns the hold", async () => {
   const small = await makeUser(40_000n);
-  await expect(requestWithdrawal({ userId: small.id, idempotencyKey: randomUUID() })).rejects.toMatchObject({
-    code: "WITHDRAWAL_RULE_UNRESOLVED",
+  const smallPayout = await requestWithdrawal({
+    userId: small.id,
+    idempotencyKey: randomUUID(),
+    amountPaise: 40_000n,
+    method: "UPI",
+    destination: "fan@upi",
   });
+  expect(smallPayout.amountPaise).toBe("40000");
+  expect(smallPayout.reviewStatus).toBe("PENDING_REVIEW");
+  expect(await accountBalance(prisma, small.id, "USER_CASH")).toBe(0n);
 
   const user = await makeUser(100_000n);
-  const payout = await requestWithdrawal({ userId: user.id, idempotencyKey: randomUUID() });
-  expect(payout.amountPaise).toBe("95000");
-  expect(await accountBalance(prisma, user.id, "USER_CASH")).toBe(5_000n);
+  await expect(
+    requestWithdrawal({
+      userId: user.id,
+      idempotencyKey: randomUUID(),
+      amountPaise: 100_001n,
+      method: "BANK",
+      destination: "123456789012",
+    }),
+  ).rejects.toMatchObject({ code: "AMOUNT" });
+  const payout = await requestWithdrawal({
+    userId: user.id,
+    idempotencyKey: randomUUID(),
+    amountPaise: 100_000n,
+    method: "BANK",
+    destination: "123456789012",
+    note: "Full balance",
+  });
+  expect(payout.amountPaise).toBe("100000");
+  expect(await accountBalance(prisma, user.id, "USER_CASH")).toBe(0n);
+  expect(await accountBalance(prisma, user.id, "USER_WITHDRAWAL_HOLD")).toBe(100_000n);
   await applyProviderResult({
     paymentId: payout.paymentId,
     status: "FAILED",
@@ -325,7 +349,15 @@ test("disabled deposits and withdrawals reject new requests", async () => {
     expect(await prisma.payment.count({ where: { userId: user.id } })).toBe(payments);
 
     await setFlag("withdrawalsEnabled", false);
-    await expect(requestWithdrawal({ userId: user.id, idempotencyKey: randomUUID() })).rejects.toMatchObject({
+    await expect(
+      requestWithdrawal({
+        userId: user.id,
+        idempotencyKey: randomUUID(),
+        amountPaise: 100_000n,
+        method: "UPI",
+        destination: "fan@upi",
+      }),
+    ).rejects.toMatchObject({
       code: "WITHDRAWALS_DISABLED",
     });
     expect(await prisma.payment.count({ where: { userId: user.id } })).toBe(payments);

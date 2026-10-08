@@ -24,14 +24,25 @@ export default async function WithdrawalsPage() {
           <li key={payment.id} className="rounded-xl border border-line bg-card px-3 py-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span>
-                {formatPaise(payment.amountPaise)} · {payment.status} · {payment.user.displayName}
+                {formatPaise(payment.amountPaise)} · {payment.status === "PENDING" ? "Pending review" : payment.status} · {payment.user.displayName}
               </span>
               <ReconcileButton paymentId={payment.id} payout />
             </div>
+            <PayoutDetails metadata={payment.metadata} />
             <WithdrawalIntervention paymentId={payment.id} />
           </li>
         ))}
       </ul>
     </main>
   );
+}
+
+function PayoutDetails({ metadata }: { metadata: unknown }) {
+  if (!metadata || typeof metadata !== "object") return null;
+  const row = metadata as Record<string, unknown>;
+  const method = typeof row.method === "string" ? row.method : null;
+  const destination = typeof row.destination === "string" ? row.destination : null;
+  const note = typeof row.note === "string" ? row.note : null;
+  if (!method && !destination && !note) return null;
+  return <p className="mt-2 text-xs text-muted">{[method, destination, note].filter(Boolean).join(" · ")}</p>;
 }

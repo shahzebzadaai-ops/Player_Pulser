@@ -8,7 +8,6 @@ export type HelpFacts = {
   minDeposit: string;
   minWithdrawal: string;
   cashPortionPercent: number;
-  withdrawPercent: number;
   depositsEnabled: boolean;
   withdrawalsEnabled: boolean;
   welcomeBonusEnabled: boolean;
@@ -46,7 +45,6 @@ export function helpFacts(input: {
   qualifyingDepositPaise: bigint;
   withdrawalMinPaise: bigint;
   cashPortionBps: number;
-  withdrawalStandardBps: number;
   depositsEnabled: boolean;
   withdrawalsEnabled: boolean;
   welcomeBonusEnabled: boolean;
@@ -63,7 +61,6 @@ export function helpFacts(input: {
     minDeposit: MIN_DEPOSIT,
     minWithdrawal: formatPaise(input.withdrawalMinPaise),
     cashPortionPercent: Math.round(input.cashPortionBps / 100),
-    withdrawPercent: Math.round(input.withdrawalStandardBps / 100),
     depositsEnabled: input.depositsEnabled,
     withdrawalsEnabled: input.withdrawalsEnabled,
     welcomeBonusEnabled: input.welcomeBonusEnabled,
@@ -123,7 +120,7 @@ export function helpTopics(facts: HelpFacts): HelpTopic[] {
       id: "payments",
       question: SUGGESTED_QUESTIONS[6],
       keywords: ["deposit", "withdraw", "upi", "bank", "payout", "payment"],
-      answer: `The minimum deposit is ${facts.minDeposit}. The wallet offers UPI and Bank when deposits are on. ${facts.depositsEnabled ? "Deposits are available." : "Deposits are temporarily unavailable."} Money is added only after PlayerPulser verifies the payment. The minimum withdrawal is ${facts.minWithdrawal}. The standard withdrawal is ${facts.withdrawPercent}% of cash, and the rest stays in the wallet. That remainder is not a fee. ${facts.withdrawalsEnabled ? "Withdrawals are available." : "Withdrawals are temporarily unavailable."} A balance below the minimum cannot use the standard withdrawal button.`,
+      answer: `The minimum deposit is ${facts.minDeposit}. The wallet offers UPI and Bank when deposits are on. ${facts.depositsEnabled ? "Deposits are available." : "Deposits are temporarily unavailable."} Money is added only after PlayerPulser verifies the payment. You can request withdrawal of up to 100% of your available cash balance. Submit a request and the team will process it. ${facts.withdrawalsEnabled ? "Withdrawals are available." : "Withdrawals are temporarily unavailable."}`,
     },
     {
       id: "demo",

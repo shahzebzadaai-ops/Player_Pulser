@@ -10,7 +10,6 @@ import {
   quoteIsFirm,
   resolveBuyFunding,
   wageringIncrement,
-  WITHDRAWAL_RULE_UNRESOLVED,
 } from "./rules";
 import { nextSimulatedMid, prepareSimulatedTick } from "./pricing";
 import { bonusIssuanceAllowed, defaultFeatureFlags } from "./features";
@@ -131,26 +130,17 @@ describe("bonus and withdrawal rules", () => {
     expect(conversionReady({ ...base, now: new Date("2026-10-02T00:00:00.000Z") })).toBe(false);
   });
 
-  it("leaves the 5% in the wallet and blocks an unresolved small withdrawal", () => {
-    const planned = planWithdrawal({
-      eligibleCashPaise: 100_000n,
-      minimumPaise: 50_000n,
-      standardBps: 9_500,
-    });
-    expect(planned).toEqual({ ok: true, value: { standardPaise: 95_000n, remainderPaise: 5_000n } });
-    const dust = planWithdrawal({
-      eligibleCashPaise: 49_999n,
-      minimumPaise: 50_000n,
-      standardBps: 9_500,
-    });
-    expect(dust.ok).toBe(false);
-    if (!dust.ok) expect(dust.code).toBe(WITHDRAWAL_RULE_UNRESOLVED);
-    const awkward = planWithdrawal({
-      eligibleCashPaise: 50_000n,
-      minimumPaise: 50_000n,
-      standardBps: 9_500,
-    });
-    expect(awkward.ok).toBe(false);
+  it("allows a withdrawal of the full available balance and rejects more than that", () => {
+    const full = planWithdrawal({ eligibleCashPaise: 100_000n, requestedPaise: 100_000n });
+    expect(full).toEqual({ ok: true, value: { amountPaise: 100_000n } });
+    const partial = planWithdrawal({ eligibleCashPaise: 100_000n, requestedPaise: 40_000n });
+    expect(partial).toEqual({ ok: true, value: { amountPaise: 40_000n } });
+    const over = planWithdrawal({ eligibleCashPaise: 40_000n, requestedPaise: 40_001n });
+    expect(over.ok).toBe(false);
+    if (!over.ok) expect(over.code).toBe("AMOUNT");
+    const empty = planWithdrawal({ eligibleCashPaise: 0n, requestedPaise: 1n });
+    expect(empty.ok).toBe(false);
+    if (!empty.ok) expect(empty.code).toBe("NOTHING_TO_WITHDRAW");
   });
 });
 

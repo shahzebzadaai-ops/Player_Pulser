@@ -1,7 +1,7 @@
 import type { PlayerRole, TradeSide } from "@prisma/client";
 import { publicPriceSource } from "@/domain/live-prices";
 import { changePercent, formatCompactInr } from "@/domain/money";
-import { feedIsStale, planWithdrawal } from "@/domain/rules";
+import { feedIsStale } from "@/domain/rules";
 import { quoteFromMid } from "@/domain/spread";
 import { weightedAveragePaise } from "@/domain/lots";
 import { cache } from "react";
@@ -282,11 +282,6 @@ export async function walletSummary(userId: string) {
   const bonus = balances.USER_BONUS;
   const proceeds = balances.USER_BONUS_PROCEEDS;
   const hold = balances.USER_WITHDRAWAL_HOLD;
-  const plan = planWithdrawal({
-    eligibleCashPaise: cash,
-    minimumPaise: settings.withdrawalMinPaise,
-    standardBps: settings.withdrawalStandardBps,
-  });
   const entries = await prisma.ledgerEntry.findMany({
     where: { userId, account: { in: ["USER_CASH", "USER_BONUS", "USER_BONUS_PROCEEDS", "USER_WITHDRAWAL_HOLD"] } },
     orderBy: { createdAt: "desc" },
@@ -299,14 +294,11 @@ export async function walletSummary(userId: string) {
     holdPaise: hold.toString(),
     depositsPaise: deposits.toString(),
     depositRequiredPaise: settings.bonusMinQualifyingDepositPaise.toString(),
-    withdrawal: plan.ok
-      ? {
-          allowed: true,
-          standardPaise: plan.value.standardPaise.toString(),
-          remainderPaise: plan.value.remainderPaise.toString(),
-          message: "The other 5% stays in your cash balance. It is still your money.",
-        }
-      : { allowed: false, message: plan.message, code: plan.code },
+    withdrawal: {
+      allowed: cash > 0n,
+      availablePaise: cash.toString(),
+      message: cash > 0n ? "Withdraw up to 100% of your available balance." : "There is no withdrawable cash yet.",
+    },
     bonus: grant
       ? {
           status: grant.status,

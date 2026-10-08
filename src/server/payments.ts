@@ -7,7 +7,6 @@ import { tryConvertBonus } from "./bonus";
 import { accountBalance, beginIdempotency, postJournal, saveIdempotency, withUserLock, type Tx } from "./ledger";
 import { prisma } from "./prisma";
 import { assertDepositsEnabled, assertWithdrawalsEnabled } from "./features";
-import { getSettings } from "./settings";
 import { planWithdrawal } from "@/domain/rules";
 import { unwrap } from "@/domain/errors";
 
@@ -42,6 +41,7 @@ export type PaymentView = {
   kind: string;
   providerRef: string | null;
   remainderPaise?: string;
+  reviewStatus?: "PENDING_REVIEW";
 };
 
 export async function createDeposit(input: {
@@ -117,26 +117,36 @@ export async function createDeposit(input: {
   return created;
 }
 
-export async function requestWithdrawal(input: { userId: string; idempotencyKey: string }): Promise<PaymentView> {
+export async function requestWithdrawal(input: {
+  userId: string;
+  idempotencyKey: string;
+  amountPaise: bigint;
+  method: "UPI" | "BANK" | "WALLET";
+  destination: string;
+  note?: string;
+}): Promise<PaymentView> {
   assertSimulatedProvider();
-  const settings = await getSettings();
+  const destination = input.destination.trim();
+  const note = input.note?.trim() ?? "";
+  if (input.method !== "UPI" && input.method !== "BANK" && input.method !== "WALLET") {
+    throw new AppError("METHOD", "Choose UPI, bank, or wallet.", 400);
+  }
+  if (destination.length < 3 || destination.length > 120) {
+    throw new AppError("DESTINATION", "Enter the account, UPI ID, or wallet details for this withdrawal.", 400);
+  }
+  if (note.length > 280) throw new AppError("NOTE", "The note is too long.", 400);
+  const requestHash = `${input.amountPaise}:${input.method}:${destination}:${note}`;
   const created = await withUserLock(input.userId, async (tx) => {
     const prior = await beginIdempotency(tx, {
       key: input.idempotencyKey,
       userId: input.userId,
       scope: "withdrawal",
-      requestHash: "standard",
+      requestHash,
     });
     if (prior.replay) return prior.replay as PaymentView;
     await assertWithdrawalsEnabled(tx);
     const eligible = await accountBalance(tx, input.userId, "USER_CASH");
-    const plan = unwrap(
-      planWithdrawal({
-        eligibleCashPaise: eligible,
-        minimumPaise: settings.withdrawalMinPaise,
-        standardBps: settings.withdrawalStandardBps,
-      }),
-    );
+    const plan = unwrap(planWithdrawal({ eligibleCashPaise: eligible, requestedPaise: input.amountPaise }));
     const payment = await tx.payment.create({
       data: {
         userId: input.userId,
@@ -144,11 +154,13 @@ export async function requestWithdrawal(input: { userId: string; idempotencyKey:
         providerRef: `sim_${randomUUID()}`,
         kind: "PAYOUT",
         status: "PENDING",
-        amountPaise: plan.standardPaise,
+        amountPaise: plan.amountPaise,
         idempotencyKey: input.idempotencyKey,
         metadata: {
-          remainderPaise: plan.remainderPaise.toString(),
-          standardBps: settings.withdrawalStandardBps,
+          method: input.method,
+          destination,
+          note: note || null,
+          reviewStatus: "PENDING_REVIEW",
           simulate: "settle",
         },
         nextRetryAt: new Date(Date.now() + 15_000),
@@ -156,20 +168,20 @@ export async function requestWithdrawal(input: { userId: string; idempotencyKey:
     });
     await postJournal(tx, {
       entryType: "WITHDRAWAL_HOLD",
-      description: "Withdrawal reserved. The remainder stays in cash.",
+      description: "Withdrawal request reserved for review.",
       referenceType: "Payment",
       referenceId: payment.id,
       lines: [
         {
           userId: input.userId,
           account: "USER_CASH",
-          amountPaise: -plan.standardPaise,
+          amountPaise: -plan.amountPaise,
           lineKey: `payout:${payment.id}:USER_CASH`,
         },
         {
           userId: input.userId,
           account: "USER_WITHDRAWAL_HOLD",
-          amountPaise: plan.standardPaise,
+          amountPaise: plan.amountPaise,
           lineKey: `payout:${payment.id}:HOLD`,
         },
       ],
@@ -177,16 +189,16 @@ export async function requestWithdrawal(input: { userId: string; idempotencyKey:
     const view: PaymentView = {
       paymentId: payment.id,
       status: "PENDING",
-      amountPaise: plan.standardPaise.toString(),
+      amountPaise: plan.amountPaise.toString(),
       kind: "PAYOUT",
       providerRef: payment.providerRef,
-      remainderPaise: plan.remainderPaise.toString(),
+      reviewStatus: "PENDING_REVIEW",
     };
     await saveIdempotency(tx, {
       key: input.idempotencyKey,
       userId: input.userId,
       scope: "withdrawal",
-      requestHash: "standard",
+      requestHash,
       response: view,
     });
     return view;

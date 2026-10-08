@@ -27,7 +27,6 @@ export async function currentHelpFacts(): Promise<HelpFacts> {
     qualifyingDepositPaise: settings.bonusMinQualifyingDepositPaise,
     withdrawalMinPaise: settings.withdrawalMinPaise,
     cashPortionBps: settings.bonusMinCashPortionBps,
-    withdrawalStandardBps: settings.withdrawalStandardBps,
     depositsEnabled: features.depositsEnabled,
     withdrawalsEnabled: features.withdrawalsEnabled,
     welcomeBonusEnabled: features.welcomeBonusEnabled,

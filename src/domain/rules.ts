@@ -69,31 +69,21 @@ export function conversionReady(input: {
   );
 }
 
-/**
- * Standard withdrawal is 95% of eligible cash, rounded down to a paise.
- * The other 5% stays in cash. It is not a fee.
- * Below-minimum and full-balance cases are refused until the business rule is decided.
- */
+/** A withdrawal request may use any positive amount up to the full eligible cash balance. */
 export function planWithdrawal(input: {
   eligibleCashPaise: bigint;
-  minimumPaise: bigint;
-  standardBps: number;
-}): RuleResult<{ standardPaise: bigint; remainderPaise: bigint }> {
+  requestedPaise: bigint;
+}): RuleResult<{ amountPaise: bigint }> {
   if (input.eligibleCashPaise <= 0n) {
     return fail("NOTHING_TO_WITHDRAW", "There is no withdrawable cash.");
   }
-  if (!Number.isInteger(input.standardBps) || input.standardBps <= 0 || input.standardBps >= 10_000) {
-    return fail("CONFIG", "The withdrawal portion is not configured correctly.");
+  if (input.requestedPaise <= 0n) {
+    return fail("AMOUNT", "Enter an amount greater than zero.");
   }
-  const standardPaise = (input.eligibleCashPaise * BigInt(input.standardBps)) / 10_000n;
-  const remainderPaise = input.eligibleCashPaise - standardPaise;
-  if (input.eligibleCashPaise < input.minimumPaise || standardPaise < input.minimumPaise) {
-    return fail(
-      WITHDRAWAL_RULE_UNRESOLVED,
-      "Withdrawing less than ₹500, including taking the final balance, is an open business decision. Your cash stays in the wallet.",
-    );
+  if (input.requestedPaise > input.eligibleCashPaise) {
+    return fail("AMOUNT", "That amount is more than your available balance.");
   }
-  return { ok: true, value: { standardPaise, remainderPaise } };
+  return { ok: true, value: { amountPaise: input.requestedPaise } };
 }
 
 export function priceChangeNeedsConfirmation(

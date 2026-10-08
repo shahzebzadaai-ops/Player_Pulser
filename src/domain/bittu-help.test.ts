@@ -17,7 +17,6 @@ const facts = helpFacts({
   qualifyingDepositPaise: 50_000n,
   withdrawalMinPaise: 50_000n,
   cashPortionBps: 5_000,
-  withdrawalStandardBps: 9_500,
   depositsEnabled: true,
   withdrawalsEnabled: true,
   welcomeBonusEnabled: true,
@@ -40,7 +39,8 @@ describe("Bittu help topics", () => {
     expect(byId.welcome).toContain("₹200.00");
     expect(byId.welcome).toContain("14 days");
     expect(byId.payments).toContain("UPI");
-    expect(byId.payments).toContain("95%");
+    expect(byId.payments).toContain("100%");
+    expect(byId.payments).not.toContain("95%");
     expect(byId.payments).not.toContain("crypto");
     expect(byId.demo).toContain("₹5,000.00");
     expect(byId.account).toContain("Complaints");
